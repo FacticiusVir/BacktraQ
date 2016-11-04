@@ -12,7 +12,9 @@ namespace Keeper.LSharp
 
             var enumQuery = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
 
-            queryStack.Push(QueryPipeline.Create(enumQuery, new TupleInjectorQuery(enumQuery)));
+            var tuplePipeline = QueryPipeline.Create(enumQuery, new TupleQuery(enumQuery));
+
+            queryStack.Push(QueryPipeline.Create(tuplePipeline, new FilterQuery()));
 
             while (queryStack.Any())
             {
@@ -20,15 +22,21 @@ namespace Keeper.LSharp
 
                 var result = query.Run();
 
-                if (result.Type == QueryResultType.ChoicePoint)
+                switch (result.Type)
                 {
-                    queryStack.Push(result.Alternate);
-                    queryStack.Push(result.Continuation);
-                    Console.WriteLine("ChoicePoint");
-                }
-                else if (result.Type == QueryResultType.Success)
-                {
-                    Console.WriteLine(result.Value);
+                    case QueryResultType.Fail:
+                        Console.WriteLine($"Fail / {queryStack.Count}");
+                        break;
+                    case QueryResultType.ChoicePoint:
+                        queryStack.Push(result.Alternate);
+                        queryStack.Push(result.Continuation);
+                        Console.WriteLine($"ChoicePoint / {queryStack.Count}");
+                        break;
+                    case QueryResultType.Success:
+                        Console.WriteLine($"{result.Value} / {queryStack.Count}");
+                        break;
+                    default:
+                        throw new InvalidOperationException();
                 }
             }
 
