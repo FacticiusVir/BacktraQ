@@ -1,60 +1,48 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Keeper.LSharp
 {
-    public class AccumulatorQuery<TState, TSubQuery, TResult>
-        : Query<TState, TResult>
+    public static class AccumulatorQuery
     {
-        private readonly Func<TState, TSubQuery, TResult> mapping;
-        private readonly Query<TSubQuery> subQuery;
-
-        public AccumulatorQuery(Query<TSubQuery> subQuery, Func<TState, TSubQuery, TResult> mapping)
+        public static Func<TState, Query<TResult>> CreatePipeline<TState, TSubQuery, TResult>(Query<TSubQuery> subQuery, Func<TState, TSubQuery, TResult> mapping)
         {
+            return state => new AccumulatorQuery<TState, TSubQuery, TResult>(state, subQuery, mapping);
+        }
+    }
+
+    public class AccumulatorQuery<TState, TSubQuery, TResult>
+        : Query<TResult>
+    {
+        private readonly TState state;
+        private readonly Query<TSubQuery> subQuery;
+        private readonly Func<TState, TSubQuery, TResult> mapping;
+        
+        public AccumulatorQuery(TState state, Query<TSubQuery> subQuery, Func<TState, TSubQuery, TResult> mapping)
+        {
+            this.state = state;
             this.subQuery = subQuery;
             this.mapping = mapping;
         }
 
-        public override QueryResult<TResult> Run(TState state)
+        public override QueryResult Run()
         {
-            return new EncapsulatedQuery(state, this.subQuery, this.mapping).Run();
-        }
+            var secondResult = this.subQuery.Run();
 
-        internal class EncapsulatedQuery
-            : Query<TResult>
-        {
-            private Func<TState, TSubQuery, TResult> mapping;
-            private TState state;
-            private Query<TSubQuery> subQuery;
-
-            public EncapsulatedQuery(TState state, Query<TSubQuery> subQuery, Func<TState, TSubQuery, TResult> mapping)
+            switch (secondResult)
             {
-                this.state = state;
-                this.subQuery = subQuery;
-                this.mapping = mapping;
-            }
+                case QueryResult.Fail:
+                    return QueryResult.Fail;
+                case QueryResult.ChoicePoint:
+                    this.Continuation = new AccumulatorQuery<TState, TSubQuery, TResult>(this.state, this.subQuery.Continuation, this.mapping);
+                    this.Alternate = new AccumulatorQuery<TState, TSubQuery, TResult>(this.state, this.subQuery.Alternate, this.mapping);
 
-            public override QueryResult<TResult> Run()
-            {
-                var secondResult = this.subQuery.Run();
+                    return QueryResult.ChoicePoint;
+                case QueryResult.Success:
+                    this.Result = this.mapping(this.state, this.subQuery.Result);
 
-                switch (secondResult.Type)
-                {
-                    case QueryResultType.Fail:
-                        return QueryResult.Fail<TResult>();
-                    case QueryResultType.ChoicePoint:
-                        var continuation = new EncapsulatedQuery(this.state, secondResult.Continuation, this.mapping);
-                        var alternate = new EncapsulatedQuery(this.state, secondResult.Alternate, this.mapping);
-
-                        return QueryResult.ChoicePoint(continuation, alternate);
-                    case QueryResultType.Success:
-                        return QueryResult.Success(this.mapping(this.state, secondResult.Value));
-                    default:
-                        throw new InvalidOperationException();
-                }
+                    return QueryResult.Success;
+                default:
+                    throw new InvalidOperationException();
             }
         }
     }

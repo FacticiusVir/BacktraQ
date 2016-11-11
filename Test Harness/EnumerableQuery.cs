@@ -31,21 +31,22 @@ namespace Keeper.LSharp
             this.afterChoicePoint = afterChoicePoint;
         }
 
-        public override QueryResult<T> Run()
+        public override QueryResult Run()
         {
             if(this.index >= this.values.Length)
             {
-                return QueryResult.Fail<T>();
+                return QueryResult.Fail;
             }
             else if(this.index == this.values.Length - 1 || this.afterChoicePoint)
             {
-                return QueryResult.Success(this.values[this.index]);
+                this.Result = this.values[this.index];
+                return QueryResult.Success;
             }
             else
             {
-                return QueryResult.ChoicePoint(
-                                        new EnumerableQuery<T>(this.values, this.index, true),
-                                        new EnumerableQuery<T>(this.values, this.index + 1, false));
+                this.Continuation = new EnumerableQuery<T>(this.values, this.index, true);
+                this.Alternate = new EnumerableQuery<T>(this.values, this.index + 1, false);
+                return QueryResult.ChoicePoint;
             }
         }
     }

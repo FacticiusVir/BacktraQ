@@ -2,18 +2,36 @@
 
 namespace Keeper.LSharp
 {
-    public class FilterQuery
-        : Query<Tuple<int, int>, Tuple<int, int>>
+    public static class FilterQuery
     {
-        public override QueryResult<Tuple<int, int>> Run(Tuple<int, int> state)
+        public static Func<T, FilterQuery<T>> CreatePipeline<T>(Func<T, bool> predicate)
         {
-            if (state.Item1 <= state.Item2)
+            return state => new FilterQuery<T>(state, predicate);
+        }
+    }
+
+    public class FilterQuery<TState>
+        : Query<TState>
+    {
+        private readonly TState state;
+        private readonly Func<TState, bool> predicate;
+
+        public FilterQuery(TState state, Func<TState, bool> predicate)
+        {
+            this.state = state;
+            this.predicate = predicate;
+        }
+
+        public override QueryResult Run()
+        {
+            if (this.predicate(this.state))
             {
-                return QueryResult.Success(state);
+                this.Result = this.state;
+                return QueryResult.Success;
             }
             else
             {
-                return QueryResult.Fail<Tuple<int, int>>();
+                return QueryResult.Fail;
             }
         }
     }

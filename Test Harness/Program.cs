@@ -1,6 +1,12 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+
+//using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Keeper.LSharp
 {
@@ -8,38 +14,54 @@ namespace Keeper.LSharp
     {
         static void Main(string[] args)
         {
-            var queryStack = new Stack<Query<Tuple<int, int>>>();
+            //    var tree = SyntaxTree(CompilationUnit()
+            //                            .AddUsings(UsingDirective(IdentifierName("System")))
+            //                            .AddMembers(NamespaceDeclaration(IdentifierName("Test"))
+            //                                            .AddMembers(ClassDeclaration("Program")
+            //                                                            .AddMembers(MethodDeclaration(ParseTypeName("int"), "Main")
+            //                                                                            .AddModifiers(ParseToken("static"))
+            //                                                                            .AddBodyStatements(ReturnStatement(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))))))));
+            //var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(".\\Input\\TestProgram.cs"));
 
-            var enumQuery = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
+            //Console.WriteLine(tree);
 
-            var tuplePipeline = QueryPipeline.Create(enumQuery, new TupleQuery(enumQuery));
+            //if (!Directory.Exists(".\\Output"))
+            //{
+            //    Directory.CreateDirectory(".\\Output");
+            //}
 
-            queryStack.Push(QueryPipeline.Create(tuplePipeline, new FilterQuery()));
+            //var result = CSharpCompilation.Create("Test.exe", new[] { tree })
+            //                                .AddReferences(MetadataReference.CreateFromFile(typeof(void).Assembly.Location))
+            //                                .Emit(".\\Output\\Test.exe");
 
-            while (queryStack.Any())
+            //foreach(var diag in result.Diagnostics)
+            //{
+            //    Console.WriteLine(diag);
+            //}
+
+            using (new CommitContext())
             {
-                var query = queryStack.Pop();
+                var intVariable = new Var<int>();
 
-                var result = query.Run();
+                var tupleVariable = new Var<Tuple<int, int>>();
 
-                switch (result.Type)
+                var enumQuery = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
+
+                var enumQuery2 = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
+
+                var tupleQuery = QueryPipeline.Create(enumQuery, enumQuery2, Tuple.Create);
+
+                var filterQuery = QueryPipeline.Create(tupleQuery, x => intVariable.TryUnify(x.Item1) && tupleVariable.TryUnify(x));
+
+                foreach (var result in filterQuery.AsEnumerable())
                 {
-                    case QueryResultType.Fail:
-                        Console.WriteLine($"Fail / {queryStack.Count}");
-                        break;
-                    case QueryResultType.ChoicePoint:
-                        queryStack.Push(result.Alternate);
-                        queryStack.Push(result.Continuation);
-                        Console.WriteLine($"ChoicePoint / {queryStack.Count}");
-                        break;
-                    case QueryResultType.Success:
-                        Console.WriteLine($"{result.Value} / {queryStack.Count}");
-                        break;
-                    default:
-                        throw new InvalidOperationException();
+                    Console.WriteLine(result);
+                    Console.WriteLine(intVariable.Value);
+                    Console.WriteLine(tupleVariable.Value);
+                    Console.WriteLine();
                 }
             }
-
+            
             Console.WriteLine("Done");
             Console.ReadLine();
         }
