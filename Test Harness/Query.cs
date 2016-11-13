@@ -4,84 +4,28 @@ using System.Linq;
 
 namespace Keeper.LSharp
 {
-    public interface IQuery
-    {
-        QueryResult Run();
-
-        IQuery Continuation
-        {
-            get;
-        }
-
-        IQuery Alternate
-        {
-            get;
-        }
-    }
-
     public abstract class Query
-        : IQuery
     {
-        public IQuery Alternate
+        public Query Alternate
         {
             get;
             protected set;
         }
 
-        public IQuery Continuation
+        public Query Continuation
         {
             get;
             protected set;
         }
 
         public abstract QueryResult Run();
-    }
-
-    public abstract class Query<T>
-        : IQuery
-    {
-        public abstract QueryResult Run();
-
-        public T Result
-        {
-            get;
-            protected set;
-        }
-
-        public Query<T> Continuation
-        {
-            get;
-            protected set;
-        }
-
-        public Query<T> Alternate
-        {
-            get;
-            protected set;
-        }
-
-        IQuery IQuery.Continuation
-        {
-            get
-            {
-                return this.Continuation;
-            }
-        }
-
-        IQuery IQuery.Alternate
-        {
-            get
-            {
-                return this.Alternate;
-            }
-        }
     }
 
     public static class QueryExtensions
     {
-        public static bool Succeeds(this IQuery query)
+        public static bool Succeeds(this Query query)
         {
-            var queryStack = new Stack<IQuery>();
+            var queryStack = new Stack<Query>();
 
             queryStack.Push(query);
 
@@ -104,31 +48,7 @@ namespace Keeper.LSharp
             return false;
         }
 
-        public static IEnumerable AsEnumerable(this IQuery query)
-        {
-            var queryStack = new Stack<IQuery>();
-
-            queryStack.Push(query);
-
-            while (queryStack.Any())
-            {
-                var currentQuery = queryStack.Pop();
-                var result = currentQuery.Run();
-
-                switch (result)
-                {
-                    case QueryResult.ChoicePoint:
-                        queryStack.Push(currentQuery.Alternate);
-                        queryStack.Push(currentQuery.Continuation);
-                        break;
-                    case QueryResult.Success:
-                        yield return true;
-                        break;
-                }
-            }
-        }
-
-        public static IEnumerable<T> AsEnumerable<T>(this Query<T> query)
+        public static IEnumerable AsEnumerable(this Query query)
         {
             bool requiresTrail = Trail.Current == null;
 
@@ -139,7 +59,7 @@ namespace Keeper.LSharp
                     Trail.Enter();
                 }
 
-                var queryStack = new Stack<Query<T>>();
+                var queryStack = new Stack<Query>();
 
                 queryStack.Push(query);
 
@@ -156,7 +76,7 @@ namespace Keeper.LSharp
                             Trail.Current.ChoicePoint();
                             break;
                         case QueryResult.Success:
-                            yield return currentQuery.Result;
+                            yield return null;
                             Trail.Current.Backtrack();
                             break;
                         default:

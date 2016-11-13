@@ -153,10 +153,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AccumulatorQuery.cs" />
     <Compile Include="CommitContext.cs" />
     <Compile Include="EnumerableQuery.cs" />
-    <Compile Include="FilterQuery.cs" />
+    <Compile Include="QueryEither.cs" />
     <Compile Include="TestQuery.cs" />
     <Compile Include="Trail.cs" />
     <Compile Include="Var.cs" />

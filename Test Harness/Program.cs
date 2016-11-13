@@ -39,31 +39,124 @@ namespace Keeper.LSharp
             //    Console.WriteLine(diag);
             //}
 
-            using (new CommitContext())
+            Console.WriteLine("Running");
+
+            var ints = new[] { 1, 2, 3, 4 };
+
+            var x = new Var<string>();
+            var y = new Var<string>();
+
+            foreach (var result in IsParent(x, y)
+                                    .AsEnumerable())
             {
-                var intVariable = new Var<int>();
-
-                var tupleVariable = new Var<Tuple<int, int>>();
-
-                var enumQuery = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
-
-                var enumQuery2 = EnumerableQuery.Create(new[] { 1, 2, 3, 4 });
-
-                var tupleQuery = QueryPipeline.Create(enumQuery, enumQuery2, Tuple.Create);
-
-                var filterQuery = QueryPipeline.Create(tupleQuery, x => intVariable.TryUnify(x.Item1) && tupleVariable.TryUnify(x));
-
-                foreach (var result in filterQuery.AsEnumerable())
-                {
-                    Console.WriteLine(result);
-                    Console.WriteLine(intVariable.Value);
-                    Console.WriteLine(tupleVariable.Value);
-                    Console.WriteLine();
-                }
+                Console.WriteLine($"X = {Format(x)}, Y = {Format(y)}");
             }
-            
+
             Console.WriteLine("Done");
             Console.ReadLine();
+        }
+
+        private static string Format<T>(Var<T> variable)
+        {
+            return variable.HasValue
+                ? variable.Value.ToString()
+                : "?";
+        }
+
+        private static Query IsMale(Var<string> deity)
+        {
+            return EnumerableQuery.Create(new[]
+            {
+                "cronus",
+                "pluto",
+                "poseidon",
+                "zeus",
+                "ares",
+                "hephaestus"
+            }, deity);
+        }
+
+        private static Query IsFemale(Var<string> deity)
+        {
+            return EnumerableQuery.Create(new[]
+            {
+                "rhea",
+                "hestia",
+                "hera",
+                "demeter",
+                "athena",
+                "hebe",
+                "persephone"
+            }, deity);
+        }
+
+        private static Query IsParent(Var<string> parent, Var<string> child)
+        {
+            return parent.Unify("cronus")
+                            .And(EnumerableQuery.Create, new[]
+                            {
+                                "hestia",
+                                "pluto",
+                                "poseidon",
+                                "zeus",
+                                "hera",
+                                "demeter",
+                            }, child)
+                            .Or(() =>
+                                parent.Unify("rhea")
+                                   .And(EnumerableQuery.Create, new[]
+                                   {
+                                        "hestia",
+                                        "pluto",
+                                        "poseidon",
+                                        "zeus",
+                                        "hera",
+                                        "demeter",
+                                   }, child)
+                            );
+
+            //return new EnumerableQuery<string[]>(new[]
+            //{
+            //    new [] { "cronus", "hestia" },
+            //    new [] { "cronus", "pluto" },
+            //    new [] { "cronus", "poseidon" },
+            //    new [] { "cronus", "zeus" },
+            //    new [] { "cronus", "hera" },
+            //    new [] { "cronus", "demeter" },
+            //    new [] { "rhea", "hestia" },
+            //    new [] { "rhea", "pluto" },
+            //    new [] { "rhea", "poseidon" },
+            //    new [] { "rhea", "zeus" },
+            //    new [] { "rhea", "hera" },
+            //    new [] { "rhea", "demeter" },
+            //    new [] { "zeus", "athena" },
+            //    new [] { "zeus", "ares" },
+            //    new [] { "zeus", "hebe" },
+            //    new [] { "zeus", "hephaestus" },
+            //    new [] { "hera", "ares" },
+            //    new [] { "hera", "hebe" },
+            //    new [] { "hera", "hephaestus" },
+            //    new [] { "zeus", "persephone" },
+            //    new [] { "demeter", "persephone" }
+            //}, array => parent.TryUnify(array[0]) && child.TryUnify(array[1]));
+        }
+
+        private static Query IsSon(Var<string> parent, Var<string> child)
+        {
+            return IsParent(parent, child)
+                    .And(IsMale, child);
+        }
+
+        private static Query IsAncestor(Var<string> ancestor, Var<string> descendant)
+        {
+            return IsParent(ancestor, descendant)
+                .Or(() =>
+                {
+                    var parent = new Var<string>();
+
+                    return IsParent(parent, descendant)
+                            .And(IsAncestor, ancestor, parent);
+                });
         }
     }
 }

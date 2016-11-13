@@ -6,46 +6,54 @@ namespace Keeper.LSharp
 {
     public static class EnumerableQuery
     {
-        public static EnumerableQuery<T> Create<T>(IEnumerable<T> enumerable)
+        public static EnumerableQuery<T> Create<T>(IEnumerable<T> enumerable, Var<T> variable)
         {
-            return new EnumerableQuery<T>(enumerable);
+            return new EnumerableQuery<T>(enumerable, x => variable.TryUnify(x));
         }
     }
 
     public class EnumerableQuery<T>
-        : Query<T>
+        : Query
     {
         private readonly int index;
         private readonly T[] values;
         private readonly bool afterChoicePoint;
+        private readonly Func<T, bool> queryAction;
 
-        public EnumerableQuery(IEnumerable<T> enumerable)
-            : this(enumerable.ToArray(), 0, false)
+        public EnumerableQuery(IEnumerable<T> enumerable, Func<T, bool> queryAction)
+            : this(enumerable.ToArray(), 0, false, queryAction)
         {
         }
 
-        private EnumerableQuery(T[] values, int index, bool afterChoicePoint)
+        private EnumerableQuery(T[] values, int index, bool afterChoicePoint, Func<T, bool> queryAction)
         {
             this.values = values;
             this.index = index;
             this.afterChoicePoint = afterChoicePoint;
+            this.queryAction = queryAction;
         }
 
         public override QueryResult Run()
         {
-            if(this.index >= this.values.Length)
+            if (this.index >= this.values.Length)
             {
                 return QueryResult.Fail;
             }
-            else if(this.index == this.values.Length - 1 || this.afterChoicePoint)
+            else if (this.index == this.values.Length - 1 || this.afterChoicePoint)
             {
-                this.Result = this.values[this.index];
-                return QueryResult.Success;
+                if (this.queryAction(this.values[this.index]))
+                {
+                    return QueryResult.Success;
+                }
+                else
+                {
+                    return QueryResult.Fail;
+                }
             }
             else
             {
-                this.Continuation = new EnumerableQuery<T>(this.values, this.index, true);
-                this.Alternate = new EnumerableQuery<T>(this.values, this.index + 1, false);
+                this.Continuation = new EnumerableQuery<T>(this.values, this.index, true, this.queryAction);
+                this.Alternate = new EnumerableQuery<T>(this.values, this.index + 1, false, this.queryAction);
                 return QueryResult.ChoicePoint;
             }
         }
