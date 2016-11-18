@@ -19,78 +19,57 @@ namespace Keeper.LSharp
         }
 
         public abstract QueryResult Run();
+
+        public static Query Not(Query query)
+        {
+            return new TestQuery(() => !query.Succeeds(true));
+        }
     }
 
     public static class QueryExtensions
     {
-        public static bool Succeeds(this Query query)
+        public static bool Succeeds(this Query query, bool revertAll = false)
         {
-            var queryStack = new Stack<Query>();
-
-            queryStack.Push(query);
-
-            while (queryStack.Any())
+            foreach(var result in query.AsEnumerable(revertAll))
             {
-                var currentQuery = queryStack.Pop();
-                var result = currentQuery.Run();
-
-                switch (result)
-                {
-                    case QueryResult.ChoicePoint:
-                        queryStack.Push(currentQuery.Alternate);
-                        queryStack.Push(currentQuery.Continuation);
-                        break;
-                    case QueryResult.Success:
-                        return true;
-                }
+                return true;
             }
 
             return false;
         }
 
-        public static IEnumerable AsEnumerable(this Query query)
+        public static IEnumerable AsEnumerable(this Query query, bool revertAll = false)
         {
-            bool requiresTrail = Trail.Current == null;
-
             try
             {
-                if (requiresTrail)
+                Trail.Enter();
+
+                Query nextQuery = query;
+
+                while (nextQuery != null)
                 {
-                    Trail.Enter();
-                }
-
-                var queryStack = new Stack<Query>();
-
-                queryStack.Push(query);
-
-                while (queryStack.Any())
-                {
-                    var currentQuery = queryStack.Pop();
+                    var currentQuery = nextQuery;
                     var result = currentQuery.Run();
 
                     switch (result)
                     {
                         case QueryResult.ChoicePoint:
-                            queryStack.Push(currentQuery.Alternate);
-                            queryStack.Push(currentQuery.Continuation);
-                            Trail.Current.ChoicePoint();
+                            nextQuery = currentQuery.Continuation;
+                            Trail.Current.ChoicePoint(currentQuery.Alternate);
                             break;
                         case QueryResult.Success:
                             yield return null;
-                            Trail.Current.Backtrack();
+                            nextQuery = Trail.Current.Backtrack();
                             break;
                         default:
-                            Trail.Current.Backtrack();
+                            nextQuery = Trail.Current.Backtrack();
                             break;
                     }
                 }
             }
             finally
             {
-                if (requiresTrail)
-                {
-                    Trail.Exit();
-                }
+                Trail.Exit(revertAll);
             }
         }
     }

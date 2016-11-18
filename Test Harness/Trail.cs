@@ -7,7 +7,7 @@ namespace Keeper.LSharp
     public class Trail
     {
         private Trail parent;
-        private Stack<List<Var>> varTrail = new Stack<List<Var>>();
+        private Stack<ChoiceFrame> frames = new Stack<ChoiceFrame>();
 
         [ThreadStatic]
         private static Trail current;
@@ -28,37 +28,83 @@ namespace Keeper.LSharp
         internal static void Enter()
         {
             current = new Trail(Current);
+
+            current.ChoicePoint(null);
         }
 
-        internal static void Exit()
+        internal static void Exit(bool revertAll = false)
         {
+            while(revertAll && Current.Depth > 0)
+            {
+                Current.Backtrack();
+            }
+
             current = Current.parent;
         }
 
-        internal void ChoicePoint()
+        internal void ChoicePoint(Query continuation)
         {
-            this.varTrail.Push(new List<Var>());
+            this.frames.Push(new ChoiceFrame
+            {
+                Continuation = continuation,
+                Trail = new List<Var>()
+            });
         }
 
         internal void Log<T>(Var<T> variable)
         {
-            if (this.varTrail.Any())
+            if (this.frames.Any())
             {
-                this.varTrail.Peek().Add(variable);
+                this.frames.Peek().Trail.Add(variable);
             }
         }
 
-        internal void Backtrack()
+        internal void Cut()
         {
-            if (this.varTrail.Any())
+            if (this.frames.Any())
             {
-                var trail = this.varTrail.Pop();
+                var frame = this.frames.Pop();
 
-                foreach (var variable in trail)
+                if (this.frames.Any())
+                {
+                    var previousFrame = this.frames.Peek();
+
+                    previousFrame.Trail.AddRange(frame.Trail);
+                }
+            }
+        }
+
+        internal Query Backtrack()
+        {
+            if (this.frames.Any())
+            {
+                var frame = this.frames.Pop();
+
+                foreach (var variable in frame.Trail)
                 {
                     variable.Reset();
                 }
+
+                return frame.Continuation;
             }
+            else
+            {
+                return null;
+            }
+        }
+
+        internal int Depth
+        {
+            get
+            {
+                return this.frames.Count;
+            }
+        }
+
+        private struct ChoiceFrame
+        {
+            public Query Continuation;
+            public List<Var> Trail;
         }
     }
 }
