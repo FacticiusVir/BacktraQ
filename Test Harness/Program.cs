@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Keeper.LSharp
+namespace Keeper.BacktraQ
 {
     class Program
     {
@@ -8,23 +8,90 @@ namespace Keeper.LSharp
         {
             Console.WriteLine("Running");
 
-            var ints = new[] { 1, 2, 3, 4 };
+            const int height = 5, width = 5;
 
-            var x = new Var<int>();
-            var y = new Var<int>();
+            //var grid = new Var<Direction>[width, height];
 
-            foreach (var result in EnumerableQuery.Create(ints, x)
-                                    .And(EnumerableQuery.Create, ints, y)
-                                    .And(Query.Not, x.Unify(y))
-                                    .AsEnumerable())
-            {
-                Console.WriteLine($"X = {Format(x)}, Y = {Format(y)}");
-            }
+            //for (int y = 0; y < height; y++)
+            //{
+            //    for (int x = 0; x < width; x++)
+            //    {
+            //        grid[x, y] = new Var<Direction>();
+            //    }
+            //}
 
-            //Console.WriteLine($"X = {Format(x)}, Y = {Format(y)}");
+            //var rnd = new Random();
+
+            //for (int y = 0; y < height; y++)
+            //{
+            //    for (int row = 0; row < 3; row++)
+            //    {
+            //        for (int x = 0; x < width; x++)
+            //        {
+            //            var cell = grid[x, y];
+
+            //            DrawCell(row, cell);
+            //        }
+
+            //        Console.WriteLine();
+            //    }
+            //}
 
             Console.WriteLine("Done");
             Console.ReadLine();
+        }
+
+        private static void DrawCell(int row, Var<Direction> cell)
+        {
+            if (cell.HasValue)
+            {
+                switch (row)
+                {
+                    case 0:
+                        if (cell.Value == Direction.Up)
+                        {
+                            Console.Write("┌╨┐");
+                        }
+                        else
+                        {
+                            Console.Write("┌─┐");
+                        }
+                        break;
+                    case 1:
+                        if (cell.Value == Direction.Left)
+                        {
+                            Console.Write("╡ │");
+                        }
+                        else if (cell.Value == Direction.Right)
+                        {
+                            Console.Write("│ ╞");
+                        }
+                        else
+                        {
+                            Console.Write("│ │");
+                        }
+                        break;
+                    case 2:
+                        if (cell.Value == Direction.Down)
+                        {
+                            Console.Write("└╥┘");
+                        }
+                        else
+                        {
+                            Console.Write("└─┘");
+                        }
+                        break;
+                }
+            }
+        }
+
+        private enum Direction
+        {
+            None,
+            Up,
+            Down,
+            Left,
+            Right
         }
 
         private static string Format<T>(Var<T> variable)

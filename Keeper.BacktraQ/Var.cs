@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Keeper.LSharp
+namespace Keeper.BacktraQ
 {
     public abstract class Var
     {
@@ -92,6 +92,11 @@ namespace Keeper.LSharp
         {
             var derefThis = this.Dereference();
             var derefOther = other.Dereference();
+
+            if (derefThis == derefOther)
+            {
+                return true;
+            }
 
             if (derefThis.HasValue)
             {

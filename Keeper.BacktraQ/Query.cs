@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Keeper.LSharp
+namespace Keeper.BacktraQ
 {
     public abstract class Query
     {
@@ -19,6 +19,16 @@ namespace Keeper.LSharp
         }
 
         public abstract QueryResult Run();
+
+        protected QueryResult InvokeAsPassthrough(Query subQuery)
+        {
+            var result = subQuery.Run();
+
+            this.Continuation = subQuery.Continuation;
+            this.Alternate = subQuery.Alternate;
+
+            return result;
+        }
 
         public static Query Not(Query query)
         {

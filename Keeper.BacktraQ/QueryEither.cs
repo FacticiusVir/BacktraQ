@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Keeper.LSharp
+namespace Keeper.BacktraQ
 {
     public class QueryEither
         : Query

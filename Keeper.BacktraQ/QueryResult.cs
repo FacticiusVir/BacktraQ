@@ -1,4 +1,4 @@
-﻿namespace Keeper.LSharp
+﻿namespace Keeper.BacktraQ
 {
     public enum QueryResult
     {

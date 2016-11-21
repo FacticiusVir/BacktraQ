@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test Harness", "Test Harness\Test Harness.csproj", "{922EDA39-2B2D-48F2-AF15-6A053CA2A605}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keeper.BacktraQ", "Keeper.BacktraQ\Keeper.BacktraQ.csproj", "{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{922EDA39-2B2D-48F2-AF15-6A053CA2A605}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{922EDA39-2B2D-48F2-AF15-6A053CA2A605}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{922EDA39-2B2D-48F2-AF15-6A053CA2A605}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
