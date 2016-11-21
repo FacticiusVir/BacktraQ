@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -28,6 +29,16 @@ namespace Keeper.BacktraQ
             this.Alternate = subQuery.Alternate;
 
             return result;
+        }
+
+        public static Query Create(Func<bool> predicate)
+        {
+            return new TestQuery(predicate);
+        }
+
+        public static Query Create(Func<Query> query)
+        {
+            return new PassthroughQuery(query);
         }
 
         public static Query Not(Query query)

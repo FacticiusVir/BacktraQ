@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace Keeper.BacktraQ
 {
@@ -10,33 +11,33 @@ namespace Keeper.BacktraQ
 
             const int height = 5, width = 5;
 
-            //var grid = new Var<Direction>[width, height];
+            var grid = new Var<Direction>[width, height];
 
-            //for (int y = 0; y < height; y++)
-            //{
-            //    for (int x = 0; x < width; x++)
-            //    {
-            //        grid[x, y] = new Var<Direction>();
-            //    }
-            //}
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    grid[x, y] = new Var<Direction>();
+                }
+            }
 
-            //var rnd = new Random();
+            var rnd = new Random();
 
-            //for (int y = 0; y < height; y++)
-            //{
-            //    for (int row = 0; row < 3; row++)
-            //    {
-            //        for (int x = 0; x < width; x++)
-            //        {
-            //            var cell = grid[x, y];
+            for (int y = 0; y < height; y++)
+            {
+                for (int row = 0; row < 3; row++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        var cell = grid[x, y];
 
-            //            DrawCell(row, cell);
-            //        }
+                        DrawCell(row, cell);
+                    }
 
-            //        Console.WriteLine();
-            //    }
-            //}
-
+                    Console.WriteLine();
+                }
+            }
+            
             Console.WriteLine("Done");
             Console.ReadLine();
         }
@@ -83,6 +84,10 @@ namespace Keeper.BacktraQ
                         break;
                 }
             }
+            else
+            {
+                Console.Write("###");
+            }
         }
 
         private enum Direction
@@ -94,11 +99,49 @@ namespace Keeper.BacktraQ
             Right
         }
 
+        private static string Format<T>(Var<VarList<T>> listVariable)
+        {
+            if (listVariable.HasValue)
+            {
+                var currentItem = listVariable.Value;
+
+                string result = "";
+
+                while (!currentItem.IsEmptyList)
+                {
+                    result += Format(currentItem.Head);
+
+                    if (currentItem.Tail.HasValue)
+                    {
+                        currentItem = currentItem.Tail.Value;
+
+                        if (!currentItem.IsEmptyList)
+                        {
+                            result += ", ";
+                        }
+                    }
+                    else
+                    {
+                        result += "| " + currentItem.Tail.ToString();
+                        currentItem = VarList<T>.EmptyList;
+                    }
+                }
+
+                return $"[{result}]";
+            }
+            else
+            {
+                return listVariable.ToString();
+            }
+        }
+
         private static string Format<T>(Var<T> variable)
         {
-            return variable.HasValue
-                ? variable.Value.ToString()
-                : "?";
+            //return variable.HasValue
+            //    ? variable.Value.ToString()
+            //    : "?";
+
+            return variable.ToString();
         }
     }
 }

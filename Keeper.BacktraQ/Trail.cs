@@ -34,9 +34,19 @@ namespace Keeper.BacktraQ
 
         internal static void Exit(bool revertAll = false)
         {
-            while(revertAll && Current.Depth > 0)
+            if (revertAll)
             {
-                Current.Backtrack();
+                while (Current.Depth > 0)
+                {
+                    Current.Backtrack();
+                }
+            }
+            else if (Current.parent != null)
+            {
+                foreach (var frame in Current.frames.Reverse())
+                {
+                    Current.parent.frames.Push(frame);
+                }
             }
 
             current = Current.parent;

@@ -42,8 +42,10 @@
   <ItemGroup>
     <Compile Include="CommitQuery.cs" />
     <Compile Include="EnumerableQuery.cs" />
+    <Compile Include="IUnifiable.cs" />
     <Compile Include="PassthroughQuery.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QMath.cs" />
     <Compile Include="Query.cs" />
     <Compile Include="QueryEither.cs" />
     <Compile Include="QueryPipeline.cs" />

@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test Harness", "Test Harness\Test Harness.csproj", "{922EDA39-2B2D-48F2-AF15-6A053CA2A605}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70} = {3A71A3B6-CEE1-4444-9F03-94A1F354FB70}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keeper.BacktraQ", "Keeper.BacktraQ\Keeper.BacktraQ.csproj", "{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}"
 EndProject

@@ -4,12 +4,15 @@ namespace Keeper.BacktraQ
 {
     public abstract class Var
     {
+        protected static int count = 0;
+
         internal abstract void Reset();
     }
 
     public class Var<T>
         : Var
     {
+        private readonly int index = System.Threading.Interlocked.Increment(ref count);
         private T value;
         private Var<T> reference;
 
@@ -83,6 +86,11 @@ namespace Keeper.BacktraQ
             };
         }
 
+        public Query Unify(T other)
+        {
+            return new TestQuery(() => this.TryUnify(other));
+        }
+
         public Query Unify(Var<T> other)
         {
             return new TestQuery(() => this.TryUnify(other));
@@ -103,7 +111,16 @@ namespace Keeper.BacktraQ
                 if (derefOther.HasValue)
                 {
                     //TODO Implement general type unification
-                    return derefThis.Value.Equals(derefOther.Value);
+                    var unifiable = derefThis.value as IUnifiable<T>;
+
+                    if (unifiable != null)
+                    {
+                        return unifiable.TryUnify(derefOther.Value);
+                    }
+                    else
+                    {
+                        return derefThis.Value.Equals(derefOther.Value);
+                    }
                 }
                 else
                 {
@@ -117,6 +134,18 @@ namespace Keeper.BacktraQ
             derefThis.State = VarState.Reference;
 
             return true;
+        }
+
+        public override string ToString()
+        {
+            if (this.HasValue)
+            {
+                return this.Value.ToString();
+            }
+            else
+            {
+                return "#" + this.Dereference().index;
+            }
         }
     }
 
