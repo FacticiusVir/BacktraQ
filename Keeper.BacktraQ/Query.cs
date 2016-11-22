@@ -41,9 +41,42 @@ namespace Keeper.BacktraQ
             return new PassthroughQuery(query);
         }
 
+        public static Query Random(int bound, Var<int> value)
+        {
+            return Random((Var<int>)bound, value);
+        }
+
+        public static Query Random(Var<int> bound, Var<int> value)
+        {
+            return Create(() => bound.HasValue)
+                .And(() =>
+                    {
+                        var sequence = Enumerable.Range(0, bound.Value).ToList();
+
+                        Shuffle(sequence);
+
+                        return EnumerableQuery.Create(sequence, value);
+                    });
+        }
+
         public static Query Not(Query query)
         {
             return new TestQuery(() => !query.Succeeds(true));
+        }
+
+        private static Random rnd = new Random();
+
+        public static void Shuffle<T>(IList<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rnd.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
         }
     }
 
