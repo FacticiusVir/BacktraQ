@@ -23,26 +23,22 @@ namespace Keeper.BacktraQ
 
             var initialcoord = new Var<Coord>();
 
+            var query = PlaceFirstCell(grid, initialcoord);
+
             var placedList = VarList<Coord>.Create(initialcoord);
 
-            var query = Query.Create(() =>
-            {
-                return PlaceCell(grid, initialcoord);
-            });
-
-            for (int index = 0; index < 10; index++)
+            for (int index = 0; index < 9; index++)
             {
                 var coord = new Var<Coord>();
                 var newPlacedList = new Var<VarList<Coord>>();
-                var intermediaryList = VarList.Create(coord);
 
-                query = query.And(PlaceCell, grid, coord, placedList)
-                            .And(placedList.Append, intermediaryList, newPlacedList);
+                query = query.And(PlaceConnectedCell, grid, coord, placedList)
+                                .And(placedList.Append, coord, newPlacedList);
 
                 placedList = newPlacedList;
             }
 
-            foreach (var result in query.AsEnumerable())
+            if (query.Succeeds())
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -58,15 +54,13 @@ namespace Keeper.BacktraQ
                         Console.WriteLine();
                     }
                 }
-
-                Console.ReadLine();
             }
 
             Console.WriteLine("Done");
             Console.ReadLine();
         }
 
-        private static Query PlaceCell(Var<Direction>[,] grid, Var<Coord> coord)
+        private static Query PlaceFirstCell(Var<Direction>[,] grid, Var<Coord> coord)
         {
             var x = new Var<int>();
             var y = new Var<int>();
@@ -77,60 +71,72 @@ namespace Keeper.BacktraQ
                     .And(() => coord.Unify(new Coord { X = x.Value, Y = y.Value }));
         }
 
-        private static Query PlaceCell(Var<Direction>[,] grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
+        private static Query PlaceConnectedCell(Var<Direction>[,] grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
         {
-            var placedLength = new Var<int>();
-            var placedIndex = new Var<int>();
             var placedCoord = new Var<Coord>();
-            var directionIndex = new Var<int>();
             var direction = new Var<Direction>();
+            var directionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
 
-            return placedList.Length(placedLength)
-                .And(Query.Random, placedLength, placedIndex)
-                .And(placedList.Nth, placedIndex, placedCoord)
-                .And(Query.Random, 4, directionIndex)
-                .And(() => direction.Unify((Direction)directionIndex.Value + 1))
-                .And(() => coord.Unify(Offset(placedCoord.Value, direction.Value)))
-                .And(() => Query.Create(() => IsInBounds(coord.Value)))
-                .And(() => Query.Create(() => !grid[coord.Value.X, coord.Value.Y].HasValue))
+            return RandomMember(placedList, placedCoord)
+                .And(RandomMember, directionList, direction)
+                .And(Offset, placedCoord, direction, coord)
+                .And(IsInBounds, coord)
+                .And(() => !grid[coord.Value.X, coord.Value.Y].HasValue)
                 .And(() => grid[coord.Value.X, coord.Value.Y].Unify(direction));
         }
-
-        private static Coord Offset(Coord value, Direction direction)
+        
+        private static Query RandomMember<T>(Var<VarList<T>> list, Var<T> member)
         {
-            int xOffset = 0;
-            int yOffset = 0;
+            var listLength = new Var<int>();
+            var randomIndex = new Var<int>();
 
-            if(direction == Direction.Down)
-            {
-                yOffset = -1;
-            }
-            else if (direction == Direction.Up)
-            {
-                yOffset = 1;
-            }
-            else if (direction == Direction.Right)
-            {
-                xOffset = -1;
-            }
-            else if (direction == Direction.Left)
-            {
-                xOffset = 1;
-            }
-
-            return new Coord
-            {
-                X = value.X + xOffset,
-                Y = value.Y + yOffset
-            };
+            return list.Length(listLength)
+                    .And(Query.Random, listLength, randomIndex)
+                    .And(list.Nth, randomIndex, member);
         }
 
-        private static bool IsInBounds(Coord value)
+        private static Query Offset(Var<Coord> oldCoord, Var<Direction> direction, Var<Coord> newCoord)
         {
-            return value.X >= 0
-                && value.Y >= 0
-                && value.X < width
-                && value.Y < height;
+            return Query.Create(() =>
+            {
+                Coord value = oldCoord.Value;
+                Direction dirValue = direction.Value;
+
+                int xOffset = 0;
+                int yOffset = 0;
+
+                if (dirValue == Direction.Down)
+                {
+                    yOffset = -1;
+                }
+                else if (dirValue == Direction.Up)
+                {
+                    yOffset = 1;
+                }
+                else if (dirValue == Direction.Right)
+                {
+                    xOffset = -1;
+                }
+                else if (dirValue == Direction.Left)
+                {
+                    xOffset = 1;
+                }
+
+                return newCoord.TryUnify(new Coord
+                {
+                    X = value.X + xOffset,
+                    Y = value.Y + yOffset
+                });
+            });
+        }
+
+        private static Query IsInBounds(Var<Coord> coord)
+        {
+            return Query.Create(() => coord.HasValue
+                                        && coord.Value.X >= 0
+                                        && coord.Value.Y >= 0
+                                        && coord.Value.X < width
+                                        && coord.Value.Y < height);
         }
 
         private static void DrawCell(int row, Var<Direction> cell)
@@ -157,6 +163,10 @@ namespace Keeper.BacktraQ
                         else if (cell.Value == Direction.Right)
                         {
                             Console.Write("│ ╞");
+                        }
+                        else if (cell.Value == Direction.None)
+                        {
+                            Console.Write("│@│");
                         }
                         else
                         {

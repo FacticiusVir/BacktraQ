@@ -132,6 +132,11 @@ namespace Keeper.BacktraQ
             });
         }
 
+        public static Query Append<T>(this Var<VarList<T>> initial, Var<T> item, Var<VarList<T>> result)
+        {
+            return initial.Append(VarList.Create(item), result);
+        }
+
         public static Query Append<T>(this Var<VarList<T>> initial, Var<VarList<T>> other, Var<VarList<T>> result)
         {
             return initial.Unify(VarList<T>.EmptyList).And(other.Unify, result)

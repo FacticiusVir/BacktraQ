@@ -86,5 +86,10 @@ namespace Keeper.BacktraQ
         {
             return new QueryPipeline(query, () => next(param1, param2, param3));
         }
+
+        public static Query And(this Query query, Func<bool> next)
+        {
+            return new QueryPipeline(query, () => Query.Create(next));
+        }
     }
 }
