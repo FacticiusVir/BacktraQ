@@ -7,10 +7,15 @@ namespace Keeper.BacktraQ
         protected static int count = 0;
 
         internal abstract void Reset();
+
+        public static void Optional<T>(ref Var<T> variable)
+        {
+            variable = variable ?? new Var<T>();
+        }
     }
 
     public class Var<T>
-        : Var
+        : Var, IVar<T>
     {
         private readonly int index = System.Threading.Interlocked.Increment(ref count);
         private T value;
@@ -86,16 +91,6 @@ namespace Keeper.BacktraQ
             };
         }
 
-        public Query Unify(T other)
-        {
-            return new TestQuery(() => this.TryUnify(other));
-        }
-
-        public Query Unify(Var<T> other)
-        {
-            return new TestQuery(() => this.TryUnify(other));
-        }
-
         public bool TryUnify(Var<T> other)
         {
             var derefThis = this.Dereference();
@@ -146,6 +141,47 @@ namespace Keeper.BacktraQ
             {
                 return "#" + this.Dereference().index;
             }
+        }
+
+        Query IVar<T>.Unify(IVar<T> other)
+        {
+            return other.Unify(this);
+        }
+
+        Query IVar<T>.Unify(Var<T> other)
+        {
+            return this.Unify(other);
+        }
+    }
+
+    public static class VarExtensions
+    {
+        public static Query Unify<T>(this Var<T> variable, T value)
+        {
+            return variable == null
+                ? Query.Success
+                : Query.Create(() => variable.TryUnify(value));
+        }
+
+        public static Query Unify<T>(this Var<T> variable, Var<T> other)
+        {
+            return variable == null
+                ? Query.Success
+                : Query.Create(() => variable.TryUnify(other));
+        }
+
+        public static Query Var<T>(this Var<T> variable)
+        {
+            return variable == null
+                ? Query.Success
+                : Query.Create(() => !variable.HasValue);
+        }
+
+        public static Query NonVar<T>(this Var<T> variable)
+        {
+            return variable == null
+                ? Query.Fail
+                : Query.Create(() => variable.HasValue);
         }
     }
 

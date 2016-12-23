@@ -6,6 +6,16 @@ namespace Keeper.BacktraQ
 {
     public static class VarList
     {
+        public static Var<VarList<T>> Create<T>()
+        {
+            return VarList<T>.Create();
+        }
+
+        public static Var<VarList<char>> Create(string text)
+        {
+            return Create(text.ToCharArray());
+        }
+
         public static Var<VarList<T>> Create<T>(params T[] items)
         {
             return VarList<T>.Create(items.Select(x => (Var<T>)x));
@@ -103,8 +113,34 @@ namespace Keeper.BacktraQ
         }
     }
 
-    public static class VarExtensions
+    public static class VarListExtensions
     {
+        public static Query UnifyHead<T>(this Var<VarList<T>> list, Var<T> head)
+        {
+            var listValue = VarList<T>.Create();
+
+            return list.Unify(listValue)
+                        .And(listValue.Head.Unify, head);
+        }
+
+        public static Query UnifyTail<T>(this Var<VarList<T>> list, Var<VarList<T>> tail)
+        {
+            var listValue = VarList<T>.Create();
+
+            return list.Unify(listValue)
+                        .And(listValue.Tail.Unify, tail);
+        }
+
+        public static Query Unify<T>(this Var<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
+        {
+            var listValue = VarList<T>.Create();
+
+            return list.Unify(listValue)
+                        .And(listValue.Head.Unify, head)
+                        .And(listValue.Tail.Unify, tail);
+        }
+
+
         public static Query Length<T>(this Var<VarList<T>> list, Var<int> length)
         {
             return list.Unify(VarList<T>.EmptyList).And(length.Unify, 0)
@@ -123,12 +159,21 @@ namespace Keeper.BacktraQ
         {
             return Query.Create(() =>
             {
-                var listValue = VarList<T>.Create();
+                var tail = VarList.Create<T>();
 
-                return list.Unify(listValue)
-                            .And(() =>
-                                element.Unify(listValue.Head)
-                                    .Or(Member, listValue.Tail, element));
+                return list.UnifyHead(element)
+                            .Or(() => list.UnifyTail(tail).And(tail.Member, element));
+            });
+        }
+
+        public static Query NonVarMember<T>(this Var<VarList<T>> list, Var<T> element)
+        {
+            return Query.Create(() =>
+            {
+                var tail = VarList.Create<T>();
+
+                return Query.Any(() => list.UnifyHead(element).And(element.NonVar),
+                                    () => list.UnifyTail(tail).And(tail.NonVar));
             });
         }
 
@@ -170,6 +215,40 @@ namespace Keeper.BacktraQ
                                                 .And(QMath.Inc, innerIndex, index);
                                     })
                             );
+            });
+        }
+        
+        public static Query RandomMember<T>(this Var<VarList<T>> list, Var<T> member)
+        {
+            var listLength = new Var<int>();
+            var randomIndex = new Var<int>();
+
+            return list.Length(listLength)
+                    .And(Query.Random, listLength, randomIndex)
+                    .And(list.Nth, randomIndex, member);
+        }
+
+        public static string AsString(this Var<VarList<char>> charList)
+        {
+            var charVar = new Var<char>();
+
+            return new string(charList.Member(charVar).AsEnumerable(charVar).ToArray());
+        }
+
+        public static Query AsString(this Var<VarList<char>> charList, Var<string> value)
+        {
+            return Query.Create(() =>
+            {
+                if (value.HasValue)
+                {
+                    return charList.Unify(VarList.Create(value.Value));
+                }
+                else
+                {
+                    var charVar = new Var<char>();
+
+                    return value.Unify(new string(charList.Member(charVar).AsEnumerable(charVar).ToArray()));
+                }
             });
         }
     }

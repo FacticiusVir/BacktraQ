@@ -31,14 +31,147 @@ namespace Keeper.BacktraQ
             return result;
         }
 
+        public static Query Create(Action action)
+        {
+            return new TestQuery(() =>
+            {
+                action();
+                return true;
+            });
+        }
+
         public static Query Create(Func<bool> predicate)
         {
             return new TestQuery(predicate);
         }
 
+        public static Query IfThen(Query condition, Query action)
+        {
+            return Query.Create(() =>
+            {
+                if(condition.Succeeds())
+                {
+                    return action;
+                }
+                else
+                {
+                    return Query.Success;
+                }
+            });
+        }
+
+
+        public static Query All(params Func<Query>[] goals)
+        {
+            return All((IEnumerable<Func<Query>>)goals);
+        }
+
+        public static Query All(IEnumerable<Func<Query>> goals)
+        {
+            var result = goals.First()();
+
+            foreach (var goal in goals.Skip(1))
+            {
+                result = result.And(goal);
+            }
+
+            return result;
+        }
+
+
+        public static Query Any(params Func<Query>[] options)
+        {
+            return Any((IEnumerable<Func<Query>>)options);
+        }
+
+        public static Query Any(IEnumerable<Func<Query>> options)
+        {
+            var result = options.First()();
+
+            foreach (var alternative in options.Skip(1))
+            {
+                result = result.Or(alternative);
+            }
+
+            return result;
+        }
+
+        public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map)
+        {
+            return Query.Create(() =>
+            {
+                if (left.HasValue)
+                {
+                    return right.Unify(map(left.Value));
+                }
+                else
+                {
+                    throw new Exception("Insufficiently instantiated terms.");
+                }
+            });
+        }
+
+        public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map, Func<V, T> unmap)
+        {
+            return Query.Create(() =>
+            {
+                if (left.HasValue)
+                {
+                    return right.Unify(map(left.Value));
+                }
+                else if (right.HasValue)
+                {
+                    return left.Unify(unmap(right.Value));
+                }
+                else
+                {
+                    throw new Exception("Insufficiently instantiated terms.");
+                }
+            });
+        }
+
+        public static Query Map<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> map, Func<V, W, T> unmapLeft, Func<T, W, V> unmapRight)
+        {
+            return Query.Create(() =>
+            {
+                if (left.HasValue & right.HasValue)
+                {
+                    return result.Unify(map(left.Value, right.Value));
+                }
+                else if (right.HasValue && result.HasValue)
+                {
+                    return left.Unify(unmapLeft(right.Value, result.Value));
+                }
+                else if (left.HasValue && result.HasValue)
+                {
+                    return right.Unify(unmapRight(left.Value, result.Value));
+                }
+                else
+                {
+                    throw new Exception("Insufficiently instantiated terms.");
+                }
+            });
+        }
+
         public static Query Create(Func<Query> query)
         {
             return new PassthroughQuery(query);
+        }
+
+        public static Query Success
+        {
+            get
+            {
+                return new TestQuery(() => true);
+            }
+        }
+
+        public static Query Fail
+        {
+            get
+            {
+                return new TestQuery(() => false);
+            }
         }
 
         public static Query Random(int bound, Var<int> value)
@@ -84,12 +217,20 @@ namespace Keeper.BacktraQ
     {
         public static bool Succeeds(this Query query, bool revertAll = false)
         {
-            foreach(var result in query.AsEnumerable(revertAll))
+            foreach (var result in query.AsEnumerable(revertAll))
             {
                 return true;
             }
 
             return false;
+        }
+
+        public static IEnumerable<T> AsEnumerable<T>(this Query query, Var<T> resultVariable)
+        {
+            foreach (var result in query.AsEnumerable())
+            {
+                yield return resultVariable.Value;
+            }
         }
 
         public static IEnumerable AsEnumerable(this Query query, bool revertAll = false)

@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test Harness", "Test Harnes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keeper.BacktraQ", "Keeper.BacktraQ\Keeper.BacktraQ.csproj", "{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DungeonGen", "DungeonGen\DungeonGen.csproj", "{403120C4-79DB-4614-B3BB-99ABDA363AC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrammarGen", "GrammarGen\GrammarGen.csproj", "{C2CE055D-C25D-4392-B307-7AA707B4D966}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +28,14 @@ Global
 		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A71A3B6-CEE1-4444-9F03-94A1F354FB70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{403120C4-79DB-4614-B3BB-99ABDA363AC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{403120C4-79DB-4614-B3BB-99ABDA363AC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{403120C4-79DB-4614-B3BB-99ABDA363AC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{403120C4-79DB-4614-B3BB-99ABDA363AC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2CE055D-C25D-4392-B307-7AA707B4D966}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2CE055D-C25D-4392-B307-7AA707B4D966}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2CE055D-C25D-4392-B307-7AA707B4D966}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2CE055D-C25D-4392-B307-7AA707B4D966}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
