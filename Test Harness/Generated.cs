@@ -41,6 +41,14 @@ namespace Keeper.BacktraQ
                         .And(this.generate, this.value);
         }
 
+        public bool HasValue
+        {
+            get
+            {
+                return this.value.HasValue;
+            }
+        }
+
         public T Value
         {
             get

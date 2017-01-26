@@ -115,7 +115,7 @@ namespace Keeper.BacktraQ
 
     public static class VarListExtensions
     {
-        public static Query UnifyHead<T>(this Var<VarList<T>> list, Var<T> head)
+        public static Query UnifyHead<T>(this IVar<VarList<T>> list, Var<T> head)
         {
             var listValue = VarList<T>.Create();
 
@@ -123,7 +123,7 @@ namespace Keeper.BacktraQ
                         .And(listValue.Head.Unify, head);
         }
 
-        public static Query UnifyTail<T>(this Var<VarList<T>> list, Var<VarList<T>> tail)
+        public static Query UnifyTail<T>(this IVar<VarList<T>> list, Var<VarList<T>> tail)
         {
             var listValue = VarList<T>.Create();
 
@@ -131,7 +131,7 @@ namespace Keeper.BacktraQ
                         .And(listValue.Tail.Unify, tail);
         }
 
-        public static Query Unify<T>(this Var<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
+        public static Query Unify<T>(this IVar<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
         {
             var listValue = VarList<T>.Create();
 
@@ -155,7 +155,7 @@ namespace Keeper.BacktraQ
                         });
         }
 
-        public static Query Member<T>(this Var<VarList<T>> list, Var<T> element)
+        public static Query Member<T>(this IVar<VarList<T>> list, Var<T> element)
         {
             return Query.Create(() =>
             {
@@ -217,7 +217,7 @@ namespace Keeper.BacktraQ
                             );
             });
         }
-        
+
         public static Query RandomMember<T>(this Var<VarList<T>> list, Var<T> member)
         {
             var listLength = new Var<int>();
@@ -226,6 +226,39 @@ namespace Keeper.BacktraQ
             return list.Length(listLength)
                     .And(Query.Random, listLength, randomIndex)
                     .And(list.Nth, randomIndex, member);
+        }
+
+        public static IEnumerable<T> AsEnumerable<T>(this IVar<VarList<T>> list)
+        {
+            var element = new Var<T>();
+
+            return list.Member(element).AsEnumerable(element);
+        }
+
+        public static IEnumerable<Var<T>> AsVarEnumerable<T>(this IVar<VarList<T>> list)
+        {
+            if (!list.HasValue)
+            {
+                throw new InvalidOperationException();
+            }
+            else if (list.Unify(VarList<T>.EmptyList).Succeeds())
+            {
+                yield break;
+            }
+            else
+            {
+                var head = new Var<T>();
+                var tail = new Var<VarList<T>>();
+
+                list.Unify(head, tail);
+
+                yield return head;
+
+                foreach(var tailVar in tail.AsVarEnumerable())
+                {
+                    yield return tailVar;
+                }
+            }
         }
 
         public static string AsString(this Var<VarList<char>> charList)
