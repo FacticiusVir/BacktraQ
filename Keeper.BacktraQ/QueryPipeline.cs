@@ -5,16 +5,16 @@ namespace Keeper.BacktraQ
     public class QueryPipeline
         : Query
     {
-        private readonly Func<Query> pipeline;
+        private readonly Query pipeline;
         private readonly Query initial;
 
-        public QueryPipeline(Query initial, Func<Query> pipeline)
+        public QueryPipeline(Query initial, Query pipeline)
         {
             this.initial = initial;
             this.pipeline = pipeline;
         }
 
-        public override QueryResult Run()
+        protected internal override QueryResult Run()
         {
             var initialResult = this.initial.Run();
 
@@ -28,7 +28,7 @@ namespace Keeper.BacktraQ
 
                     return QueryResult.ChoicePoint;
                 case QueryResult.Success:
-                    var pipelineQuery = this.pipeline();
+                    var pipelineQuery = this.pipeline;
                     var pipelineResult = pipelineQuery.Run();
 
                     switch (pipelineResult)
@@ -44,47 +44,18 @@ namespace Keeper.BacktraQ
                     throw new InvalidOperationException();
             }
         }
-
-        //public static QueryPipeline<TState, TResult> Create<TState, TSubQuery, TResult>(Query<TState> initial, Query<TSubQuery> subQuery, Func<TState, TSubQuery, TResult> mapping)
-        //{
-        //    var pipeline = AccumulatorQuery.CreatePipeline(subQuery, mapping);
-
-        //    return Create(initial, pipeline);
-        //}
-
-        //public static QueryPipeline<TState, TState> Create<TState>(Query<TState> initial, Func<TState, bool> predicate)
-        //{
-        //    var pipeline = FilterQuery.CreatePipeline(predicate);
-
-        //    return Create(initial, pipeline);
-        //}
-
-        //public static QueryPipeline<TState, TResult> Create<TState, TResult>(Query<TState> initial, Func<TState, Query<TResult>> pipeline)
-        //{
-        //    return new QueryPipeline<TState, TResult>(initial, pipeline);
-        //}
     }
 
     public static class QueryPipelineExtensions
     {
-        public static Query And(this Query query, Func<Query> next)
+        public static Query And(this Query query, Query next)
         {
             return new QueryPipeline(query, next);
         }
 
-        public static Query And<T>(this Query query, Func<T, Query> next, T param)
+        public static Query And(this Query query, Func<Query> next)
         {
-            return new QueryPipeline(query, () => next(param));
-        }
-
-        public static Query And<T, V>(this Query query, Func<T, V, Query> next, T param1, V param2)
-        {
-            return new QueryPipeline(query, () => next(param1, param2));
-        }
-
-        public static Query And<T, V, W>(this Query query, Func<T, V, W, Query> next, T param1, V param2, W param3)
-        {
-            return new QueryPipeline(query, () => next(param1, param2, param3));
+            return new QueryPipeline(query, Query.Create(next));
         }
     }
 }

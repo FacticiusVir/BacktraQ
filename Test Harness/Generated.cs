@@ -32,13 +32,13 @@ namespace Keeper.BacktraQ
         public Query Unify(Var<T> value)
         {
             return this.value.Unify(value)
-                        .And(this.generate, this.value);
+                        & this.generate(this.value);
         }
 
         public Query Unify(IVar<T> other)
         {
             return other.Unify(this.value)
-                        .And(this.generate, this.value);
+                        & this.generate(this.value);
         }
 
         public bool HasValue

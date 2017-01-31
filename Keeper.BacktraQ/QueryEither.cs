@@ -5,19 +5,19 @@ namespace Keeper.BacktraQ
     public class QueryEither
         : Query
     {
-        private readonly Func<Query> alternateFunc;
+        private readonly Query alternateFunc;
         private readonly Query initial;
 
-        public QueryEither(Query initial, Func<Query> alternate)
+        public QueryEither(Query initial, Query alternate)
         {
             this.initial = initial;
             this.alternateFunc = alternate;
         }
 
-        public override QueryResult Run()
+        protected internal override QueryResult Run()
         {
             this.Continuation = this.initial;
-            this.Alternate = this.alternateFunc();
+            this.Alternate = this.alternateFunc;
 
             return QueryResult.ChoicePoint;
         }
@@ -25,19 +25,14 @@ namespace Keeper.BacktraQ
 
     public static class QueryEitherExtensions
     {
-        public static Query Or(this Query query, Func<Query> next)
+        public static Query Or(this Query query, Query next)
         {
             return new QueryEither(query, next);
         }
 
-        public static Query Or<T>(this Query query, Func<T, Query> next, T param)
+        public static Query Or(this Query query, Func<Query> next)
         {
-            return new QueryEither(query, () => next(param));
-        }
-
-        public static Query Or<T, V>(this Query query, Func<T, V, Query> next, T param1, V param2)
-        {
-            return new QueryEither(query, () => next(param1, param2));
+            return new QueryEither(query, Query.Create(next));
         }
     }
 }

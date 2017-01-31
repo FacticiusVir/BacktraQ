@@ -12,7 +12,7 @@ namespace Keeper.BacktraQ
             this.predicate = predicate;
         }
 
-        public override QueryResult Run()
+        protected internal override QueryResult Run()
         {
             return this.predicate()
                 ? QueryResult.Success

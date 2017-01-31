@@ -31,12 +31,11 @@ namespace GrammarGen
 
         static void Main(string[] args)
         {
-            var tail = VarList.Create("");
+            var tail = VarList<char>.EmptyList;
             var text = new Var<VarList<char>>();
             var output = new Var<VarList<char>>();
 
-            foreach (var result in SimpleSentence().BuildQuery(text, tail)
-                                    .And(Capitalise, text, output)
+            foreach (var result in (SimpleSentence().BuildQuery(text, tail) & Capitalise(text, output))
                                     .AsEnumerable())
             {
                 Console.WriteLine(output.AsString());
@@ -52,8 +51,8 @@ namespace GrammarGen
             var upperHead = new Var<char>();
 
             return lower.Unify(lowerHead, tail)
-                        .And(upper.Unify, upperHead, tail)
-                        .And(Capitalise, lowerHead, upperHead);
+                        & upper.Unify(upperHead, tail)
+                        & Capitalise(lowerHead, upperHead);
         }
 
         private static Query Capitalise(Var<char> lower, Var<char> upper)

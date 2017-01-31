@@ -33,7 +33,7 @@ namespace Keeper.BacktraQ
             this.queryAction = queryAction;
         }
 
-        public override QueryResult Run()
+        protected internal override QueryResult Run()
         {
             if (this.index >= this.values.Length)
             {

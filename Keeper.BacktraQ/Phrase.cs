@@ -17,8 +17,8 @@ namespace Keeper.BacktraQ
             var textChars = new Var<VarList<char>>();
 
             return Query.IfThen(text.NonVar(), textChars.AsString(text))
-                            .And(() => this.BuildQuery(textChars, null))
-                            .And(textChars.AsString, text);
+                            & this.BuildQuery(textChars, null)
+                            & textChars.AsString(text);
         }
 
         public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail = null)
@@ -43,14 +43,9 @@ namespace Keeper.BacktraQ
             return Token(token);
         }
 
-        public static implicit operator Phrase(Func<Query> query)
-        {
-            return new Phrase((x, y) => x.Unify(y).And(query));
-        }
-
         public static implicit operator Phrase(Query query)
         {
-            return new Phrase((x, y) => x.Unify(y).And(() => query));
+            return new Phrase((x, y) => x.Unify(y) & query);
         }
 
         public static Phrase Token(Var<VarList<char>> token)
@@ -78,7 +73,7 @@ namespace Keeper.BacktraQ
         {
             return new Phrase((text, tail) =>
             {
-                var elementQueries = elements.Select<Phrase, Func<Query>>(element => () => element.BuildQuery(text, tail));
+                var elementQueries = elements.Select(element => element.BuildQuery(text, tail));
 
                 return Query.Any(elementQueries);
             });
@@ -94,7 +89,7 @@ namespace Keeper.BacktraQ
                 var elementVar = new Var<Func<Query>>();
 
                 return elementList.RandomMember(elementVar)
-                                    .And(() => elementVar.Value());
+                                    .And(elementVar.Value());
             });
         }
 
@@ -127,7 +122,7 @@ namespace Keeper.BacktraQ
                         var elementText = previousTail;
                         var elementTail = nextTail;
 
-                        result = result.And(() => element.BuildQuery(elementText, elementTail));
+                        result = result.And(element.BuildQuery(elementText, elementTail));
                     }
 
                     previousTail = nextTail;

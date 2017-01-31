@@ -12,19 +12,19 @@ namespace Keeper.BacktraQ
             this.goal = goal;
         }
 
-        public override QueryResult Run()
+        protected internal override QueryResult Run()
         {
             int trailDepth = Trail.Current.Depth;
 
-            var subQuery = goal.And(() => new TestQuery(() =>
+            var subQuery = goal & (() =>
             {
                 while (Trail.Current.Depth > trailDepth)
                 {
                     Trail.Current.Cut();
                 }
 
-                return true;
-            }));
+                return Query.Success;
+            });
 
             var result = subQuery.Run();
 

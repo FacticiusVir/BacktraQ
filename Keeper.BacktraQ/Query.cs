@@ -7,19 +7,19 @@ namespace Keeper.BacktraQ
 {
     public abstract class Query
     {
-        public Query Alternate
+        protected internal Query Alternate
         {
             get;
             protected set;
         }
 
-        public Query Continuation
+        protected internal Query Continuation
         {
             get;
             protected set;
         }
 
-        public abstract QueryResult Run();
+        protected internal abstract QueryResult Run();
 
         protected QueryResult InvokeAsPassthrough(Query subQuery)
         {
@@ -47,28 +47,32 @@ namespace Keeper.BacktraQ
 
         public static Query IfThen(Query condition, Query action)
         {
+            return IfThen(condition, action, Query.Success);
+        }
+
+        public static Query IfThen(Query condition, Query action, Query elseAction)
+        {
             return Query.Create(() =>
             {
-                if(condition.Succeeds())
+                if (condition.Succeeds(true))
                 {
                     return action;
                 }
                 else
                 {
-                    return Query.Success;
+                    return elseAction;
                 }
             });
         }
 
-
-        public static Query All(params Func<Query>[] goals)
+        public static Query All(params Query[] goals)
         {
-            return All((IEnumerable<Func<Query>>)goals);
+            return All((IEnumerable<Query>)goals);
         }
 
-        public static Query All(IEnumerable<Func<Query>> goals)
+        public static Query All(IEnumerable<Query> goals)
         {
-            var result = goals.First()();
+            var result = goals.First();
 
             foreach (var goal in goals.Skip(1))
             {
@@ -79,14 +83,14 @@ namespace Keeper.BacktraQ
         }
 
 
-        public static Query Any(params Func<Query>[] options)
+        public static Query Any(params Query[] options)
         {
-            return Any((IEnumerable<Func<Query>>)options);
+            return Any((IEnumerable<Query>)options);
         }
 
-        public static Query Any(IEnumerable<Func<Query>> options)
+        public static Query Any(IEnumerable<Query> options)
         {
-            var result = options.First()();
+            var result = options.First();
 
             foreach (var alternative in options.Skip(1))
             {
@@ -153,6 +157,28 @@ namespace Keeper.BacktraQ
             });
         }
 
+        public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct)
+        {
+            return Query.Create(() =>
+            {
+                if (left.HasValue & right.HasValue)
+                {
+                    return result.Unify(construct(left.Value, right.Value));
+                }
+                else if (result.HasValue)
+                {
+                    var values = deconstruct(result.Value);
+
+                    return left.Unify(values.Item1)
+                            & right.Unify(values.Item2);
+                }
+                else
+                {
+                    throw new Exception("Insufficiently instantiated terms.");
+                }
+            });
+        }
+
         public static Query Create(Func<Query> query)
         {
             return new PassthroughQuery(query);
@@ -210,6 +236,31 @@ namespace Keeper.BacktraQ
                 list[k] = list[n];
                 list[n] = value;
             }
+        }
+
+        public static Query operator &(Query left, Query right)
+        {
+            return left.And(right);
+        }
+
+        public static Query operator &(Query left, Func<Query> right)
+        {
+            return left.And(right);
+        }
+
+        public static Query operator |(Query left, Query right)
+        {
+            return left.Or(right);
+        }
+
+        public static Query operator |(Query left, Func<Query> right)
+        {
+            return left.Or(right);
+        }
+
+        public static Query operator !(Query query)
+        {
+            return Not(query);
         }
     }
 
