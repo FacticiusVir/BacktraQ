@@ -35,8 +35,7 @@ namespace GrammarGen
             var text = new Var<VarList<char>>();
             var output = new Var<VarList<char>>();
 
-            foreach (var result in (SimpleSentence().BuildQuery(text, tail) & Capitalise(text, output))
-                                    .AsEnumerable())
+            foreach (var result in SimpleSentence().BuildQuery(text, tail) & Capitalise(text, output))
             {
                 Console.WriteLine(output.AsString());
             }

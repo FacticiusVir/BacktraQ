@@ -149,7 +149,7 @@ namespace Keeper.BacktraQ
 
                             return list.UnifyTail(tail)
                                     & tail.Length(tailLength)
-                                    & QMath.Inc(tailLength, length);
+                                    & length <= tailLength.Inc;
                         });
         }
 
@@ -204,7 +204,7 @@ namespace Keeper.BacktraQ
                                     var innerIndex = new Var<int>();
 
                                     return tail.Nth(innerIndex, element)
-                                            & QMath.Inc(innerIndex, index);
+                                            & index <= innerIndex.Inc;
                                 })
                         );
         }

@@ -6,6 +6,7 @@ using System.Linq;
 namespace Keeper.BacktraQ
 {
     public abstract class Query
+        : IEnumerable
     {
         protected internal Query Alternate
         {
@@ -238,6 +239,11 @@ namespace Keeper.BacktraQ
             }
         }
 
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.AsEnumerable().GetEnumerator();
+        }
+
         public static Query operator &(Query left, Query right)
         {
             return left.And(right);
@@ -278,7 +284,7 @@ namespace Keeper.BacktraQ
 
         public static IEnumerable<T> AsEnumerable<T>(this Query query, Var<T> resultVariable)
         {
-            foreach (var result in query.AsEnumerable())
+            foreach (var result in query)
             {
                 yield return resultVariable.Value;
             }

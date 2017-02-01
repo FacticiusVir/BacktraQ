@@ -2,7 +2,7 @@
 {
     public static class QMath
     {
-        public static Query Inc(Var<int> initial, Var<int> result)
+        public static Query Inc(this Var<int> initial, Var<int> result)
         {
             return Query.Map(initial, result, x => x + 1, x => x - 1);
         }

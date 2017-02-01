@@ -43,20 +43,16 @@ namespace Keeper.BacktraQ.Tests
         public void ShouldHaveOneResultFromTest()
         {
             var target = Query.Success;
-
-            var results = target.AsEnumerable();
-
-            Assert.AreEqual(1, Count(results));
+            
+            Assert.AreEqual(1, Count(target));
         }
 
         [TestMethod]
         public void ShouldHaveNoResultsFromFailedTest()
         {
             var target = Query.Fail;
-
-            var results = target.AsEnumerable();
-
-            Assert.AreEqual(0, Count(results));
+            
+            Assert.AreEqual(0, Count(target));
         }
 
         [TestMethod]
@@ -108,14 +104,14 @@ namespace Keeper.BacktraQ.Tests
         [TestMethod]
         public void ShouldListMask()
         {
-            var var1 = new Var<int>();
+            var variable = new Var<int>();
 
             var list1 = VarList.Create(1, 2, 3, 4, 5);
             var list2 = VarList.Create(3, 4, 5, 6, 7);
 
-            var target = list1.Member(var1) & !list2.Member(var1);
+            var target = variable <= list1.Member & !(variable <= list2.Member);
 
-            CollectionAssert.AreEqual(new[] { 1, 2 }, target.AsEnumerable(var1).ToArray());
+            CollectionAssert.AreEqual(new[] { 1, 2 }, target.AsEnumerable(variable).ToArray());
         }
     }
 }
