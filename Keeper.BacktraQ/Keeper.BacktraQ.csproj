@@ -43,7 +43,6 @@
     <Compile Include="CommitQuery.cs" />
     <Compile Include="EnumerableQuery.cs" />
     <Compile Include="IUnifiable.cs" />
-    <Compile Include="IVar.cs" />
     <Compile Include="PassthroughQuery.cs" />
     <Compile Include="Phrase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

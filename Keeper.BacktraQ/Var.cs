@@ -15,7 +15,7 @@ namespace Keeper.BacktraQ
     }
 
     public class Var<T>
-        : Var, IVar<T>
+        : Var
     {
         private readonly int index = System.Threading.Interlocked.Increment(ref count);
         private T value;
@@ -141,16 +141,6 @@ namespace Keeper.BacktraQ
             {
                 return "#" + this.Dereference().index;
             }
-        }
-
-        Query IVar<T>.Unify(IVar<T> other)
-        {
-            return other.Unify(this);
-        }
-
-        Query IVar<T>.Unify(Var<T> other)
-        {
-            return this.Unify(other);
         }
 
         public static Query operator <=(Var<T> left, Var<T> right)
