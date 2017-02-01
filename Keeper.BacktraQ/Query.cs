@@ -8,29 +8,7 @@ namespace Keeper.BacktraQ
     public abstract class Query
         : IEnumerable
     {
-        protected internal Query Alternate
-        {
-            get;
-            protected set;
-        }
-
-        protected internal Query Continuation
-        {
-            get;
-            protected set;
-        }
-
         protected internal abstract QueryResult Run();
-
-        protected QueryResult InvokeAsPassthrough(Query subQuery)
-        {
-            var result = subQuery.Run();
-
-            this.Continuation = subQuery.Continuation;
-            this.Alternate = subQuery.Alternate;
-
-            return result;
-        }
 
         public static Query Create(Action action)
         {
@@ -101,22 +79,26 @@ namespace Keeper.BacktraQ
             return result;
         }
 
-        public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map)
+        public static Query Chain<T>(Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)
         {
-            return Query.Create(() =>
+            output = output ?? new Var<T>();
+
+            var intermediary = new Var<T>();
+
+            var queryAccumulator = subQuery(input, intermediary);
+
+            for (int index = 1; index < repetitions; index++)
             {
-                if (left.HasValue)
-                {
-                    return right <= map(left.Value);
-                }
-                else
-                {
-                    throw new Exception("Insufficiently instantiated terms.");
-                }
-            });
+                input = intermediary;
+                intermediary = new Var<T>();
+
+                queryAccumulator = queryAccumulator & subQuery(input, intermediary);
+            }
+
+            return intermediary <= output & queryAccumulator;
         }
 
-        public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map, Func<V, T> unmap)
+        public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map, Func<V, T> unmap = null)
         {
             return Query.Create(() =>
             {
@@ -124,7 +106,7 @@ namespace Keeper.BacktraQ
                 {
                     return right <= map(left.Value);
                 }
-                else if (right.HasValue)
+                else if (right.HasValue && unmap != null)
                 {
                     return left <= unmap(right.Value);
                 }
@@ -158,7 +140,7 @@ namespace Keeper.BacktraQ
             });
         }
 
-        public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct)
+        public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct = null)
         {
             return Query.Create(() =>
             {
@@ -166,7 +148,7 @@ namespace Keeper.BacktraQ
                 {
                     return result <= construct(left.Value, right.Value);
                 }
-                else if (result.HasValue)
+                else if (result.HasValue && deconstruct != null)
                 {
                     var values = deconstruct(result.Value);
 
@@ -282,6 +264,29 @@ namespace Keeper.BacktraQ
             return false;
         }
 
+        public static Var<VarList<T>> AsVarList<T>(this Query query, Var<T> resultVariable)
+        {
+            var resultList = new List<Var<T>>();
+
+            foreach(var result in query)
+            {
+                if(resultVariable.HasValue)
+                {
+                    resultList.Add(resultVariable.Value);
+                }
+                else if(resultVariable.IsBound)
+                {
+                    resultList.Add(resultVariable.Dereference());
+                }
+                else
+                {
+                    resultList.Add(new Var<T>());
+                }
+            }
+
+            return VarList.Create(resultList.ToArray());
+        }
+
         public static IEnumerable<T> AsEnumerable<T>(this Query query, Var<T> resultVariable)
         {
             foreach (var result in query)
@@ -303,13 +308,13 @@ namespace Keeper.BacktraQ
                     var currentQuery = nextQuery;
                     var result = currentQuery.Run();
 
-                    switch (result)
+                    switch (result.Type)
                     {
-                        case QueryResult.ChoicePoint:
-                            nextQuery = currentQuery.Continuation;
-                            Trail.Current.ChoicePoint(currentQuery.Alternate);
+                        case QueryResultType.ChoicePoint:
+                            nextQuery = result.Continuation;
+                            Trail.Current.ChoicePoint(result.Alternate);
                             break;
-                        case QueryResult.Success:
+                        case QueryResultType.Success:
                             yield return null;
                             nextQuery = Trail.Current.Backtrack();
                             break;

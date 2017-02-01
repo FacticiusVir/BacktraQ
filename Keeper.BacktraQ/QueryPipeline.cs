@@ -18,28 +18,19 @@ namespace Keeper.BacktraQ
         {
             var initialResult = this.initial.Run();
 
-            switch (initialResult)
+            switch (initialResult.Type)
             {
-                case QueryResult.Fail:
+                case QueryResultType.Fail:
                     return QueryResult.Fail;
-                case QueryResult.ChoicePoint:
-                    this.Continuation = new QueryPipeline(this.initial.Continuation, this.pipeline);
-                    this.Alternate = new QueryPipeline(this.initial.Alternate, this.pipeline);
-
-                    return QueryResult.ChoicePoint;
-                case QueryResult.Success:
-                    var pipelineQuery = this.pipeline;
-                    var pipelineResult = pipelineQuery.Run();
-
-                    switch (pipelineResult)
+                case QueryResultType.ChoicePoint:
+                    return new QueryResult
                     {
-                        case QueryResult.ChoicePoint:
-                            this.Continuation = pipelineQuery.Continuation;
-                            this.Alternate = pipelineQuery.Alternate;
-                            break;
-                    }
-
-                    return pipelineResult;
+                        Type = QueryResultType.ChoicePoint,
+                        Continuation = new QueryPipeline(initialResult.Continuation, this.pipeline),
+                        Alternate = new QueryPipeline(initialResult.Alternate, this.pipeline)
+                    };
+                case QueryResultType.Success:
+                    return this.pipeline.Run();
                 default:
                     throw new InvalidOperationException();
             }

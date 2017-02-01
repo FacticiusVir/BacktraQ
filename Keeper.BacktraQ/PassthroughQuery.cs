@@ -14,7 +14,7 @@ namespace Keeper.BacktraQ
 
         protected internal override QueryResult Run()
         {
-            return this.InvokeAsPassthrough(this.subQuery());
+            return this.subQuery().Run();
         }
     }
 }

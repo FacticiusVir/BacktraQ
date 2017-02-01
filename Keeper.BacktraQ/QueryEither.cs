@@ -5,21 +5,23 @@ namespace Keeper.BacktraQ
     public class QueryEither
         : Query
     {
-        private readonly Query alternateFunc;
         private readonly Query initial;
+        private readonly Query alternate;
 
         public QueryEither(Query initial, Query alternate)
         {
             this.initial = initial;
-            this.alternateFunc = alternate;
+            this.alternate = alternate;
         }
 
         protected internal override QueryResult Run()
         {
-            this.Continuation = this.initial;
-            this.Alternate = this.alternateFunc;
-
-            return QueryResult.ChoicePoint;
+            return new QueryResult
+            {
+                Type = QueryResultType.ChoicePoint,
+                Continuation = this.initial,
+                Alternate = this.alternate
+            };
         }
     }
 

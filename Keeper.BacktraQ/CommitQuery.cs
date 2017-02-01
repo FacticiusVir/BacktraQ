@@ -26,12 +26,7 @@ namespace Keeper.BacktraQ
                 return Query.Success;
             });
 
-            var result = subQuery.Run();
-
-            this.Continuation = subQuery.Continuation;
-            this.Alternate = subQuery.Alternate;
-
-            return result;
+            return subQuery.Run();
         }
     }
 

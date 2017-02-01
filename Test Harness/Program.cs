@@ -14,6 +14,7 @@ namespace Keeper.BacktraQ
             GetListMembers();
             Negation();
             SimpleDCG();
+            QueryTimeCodeExecution();
 
             Console.ReadLine();
         }
@@ -27,6 +28,7 @@ namespace Keeper.BacktraQ
 
             // Create query as "unify variable with 123"
             var query = variable <= 123;
+            // This is a shorthand for "var query = variable.Unify(123);"
 
             // Run query and display all results
             int count = 0;
@@ -50,6 +52,7 @@ namespace Keeper.BacktraQ
 
             // Create query as "unify variable1 with variable2, and unify variable2 with 123"
             var query = variable1 <= variable2 & variable2 <= 123;
+            // This is a shorthand for "var query = (variable1 <= variable2).And(variable2 <= 123);"
 
             // Run query and display all results
             int count = 0;
@@ -73,6 +76,7 @@ namespace Keeper.BacktraQ
 
             // Create query as "unify variable with 'a', or 'b', or 'c'"
             var query = variable <= 'a' | variable <= 'b' | variable <= 'c';
+            // This is a shorthand for "var query = (variable <= 'a').Or(variable <= 'b').Or(variable <= 'c');"
 
             // Run query and display all results
             int count = 0;
@@ -98,6 +102,7 @@ namespace Keeper.BacktraQ
 
             // Create query as "unify member with each member of the list"
             var query = member <= list.Member;
+            // This is a shorthand for "var query = list.Member(member);"
 
             // Run query and display all results
             int count = 0;
@@ -122,8 +127,10 @@ namespace Keeper.BacktraQ
             var list = VarList.Create(1, 2, 3, 4);
             var list2 = VarList.Create(3, 4, 5, 6);
 
-            // Create query as "unify member with each member of the list"
+            // Create query as "unify member with each member of the list, and
+            // don't unify with members of list2"
             var query = member <= list.Member & !(member <= list2.Member);
+            // This is a shorthand for "var query = member <= list.Member & Query.Not(member <= list2.Member);"
 
             // Run query and display all results
             int count = 0;
@@ -144,8 +151,11 @@ namespace Keeper.BacktraQ
             // Create a list of phrase options
             var programmingLanguage = (Phrase)"Prolog" ^ "C#" ^ "Lisp" ^ "C++" ^ "Java";
 
+            // Create a randomised list of OSes
+            var os = Phrase.RandomPhrase("Windows", "Linux", "MacOS");
+
             // Build a phrase from combined parts
-            var sentence = "My favourite programming language is " + programmingLanguage + " - what's yours?";
+            var sentence = "I write " + programmingLanguage + " on a " + os + " box.";
 
             // Create an unbound character list
             var sentenceText = new Var<VarList<char>>();
@@ -159,6 +169,41 @@ namespace Keeper.BacktraQ
             foreach (var result in query)
             {
                 Console.WriteLine($"sentenceText = {sentenceText.AsString()}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+        }
+
+        private static void QueryTimeCodeExecution()
+        {
+            DisplayHeader("Query-time Code Execution");
+
+            // Create unbound variable
+            var member = new Var<int>();
+
+            // Create pre-populated lists
+            var list = VarList.Create(1, 2, 3, 4);
+            var list2 = VarList.Create(3, 4, 5, 6);
+
+            // Create query as "unify member with each member of the list,
+            // output the value of member at this point in the query execution,
+            // and don't unify with members of list2"
+            var query = member <= list.Member
+                            & (() =>
+                                {
+                                    Console.WriteLine($"  try with member = {member}");
+
+                                    return Query.Success;
+                                })
+                            & !(member <= list2.Member);
+
+            // Run query and display all results
+            int count = 0;
+
+            foreach (var result in query)
+            {
+                Console.WriteLine($"member = {member}");
                 count++;
             }
 

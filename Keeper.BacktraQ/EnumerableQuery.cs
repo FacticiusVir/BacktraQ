@@ -52,9 +52,12 @@ namespace Keeper.BacktraQ
             }
             else
             {
-                this.Continuation = new EnumerableQuery<T>(this.values, this.index, true, this.queryAction);
-                this.Alternate = new EnumerableQuery<T>(this.values, this.index + 1, false, this.queryAction);
-                return QueryResult.ChoicePoint;
+                return new QueryResult
+                {
+                    Type = QueryResultType.ChoicePoint,
+                    Continuation = new EnumerableQuery<T>(this.values, this.index, true, this.queryAction),
+                    Alternate = new EnumerableQuery<T>(this.values, this.index + 1, false, this.queryAction)
+                };
             }
         }
     }

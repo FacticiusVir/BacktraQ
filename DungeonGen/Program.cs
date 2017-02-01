@@ -23,38 +23,19 @@ namespace DungeonGen
             }
 
             var initialcoord = new Var<Coord>();
+            
+            var query = PlaceFirstCell(grid, initialcoord)
+                            & Query.Chain((oldList, newList) =>
+                                    {
+                                        var coord = new Var<Coord>();
 
-            var query = PlaceFirstCell(grid, initialcoord);
-
-            var placedList = VarList.Create(initialcoord);
-
-            for (int index = 0; index < 20; index++)
-            {
-                var coord = new Var<Coord>();
-                var newPlacedList = new Var<VarList<Coord>>();
-
-                query = query & PlaceConnectedCell(grid, coord, placedList)
-                                & placedList.Append(coord, newPlacedList);
-
-                placedList = newPlacedList;
-            }
-
+                                        return PlaceConnectedCell(grid, coord, oldList)
+                                                    & oldList.Append(coord, newList);
+                                    }, 40, VarList.Create(initialcoord));
+            
             if (query.Succeeds())
             {
-                for (int y = 0; y < height; y++)
-                {
-                    for (int row = 0; row < 3; row++)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            var cell = grid[x, y];
-
-                            DrawCell(row, cell);
-                        }
-
-                        Console.WriteLine();
-                    }
-                }
+                DrawGrid(grid);
             }
 
             Console.WriteLine("Done");
@@ -81,16 +62,32 @@ namespace DungeonGen
             var cell = new Var<Direction>();
 
             return placedCoord <= placedList.RandomMember
-                                & direction <= DirectionList.RandomMember
-                                & Offset(placedCoord, direction, coord)
-                                & IsInBounds(coord)
-                                & HasFreeSides(grid, coord)
-                                & GetCell(grid, coord, cell)
-                                & cell.IsVar()
-                                & cell <= direction;
+                        & direction <= DirectionList.RandomMember
+                        & Offset(placedCoord, direction, coord)
+                        & IsInBounds(coord)
+                        & HasFreeSides(grid, coord, 3)
+                        & !IsCorridor(grid, coord, direction, 3)
+                        & GetCell(grid, coord, cell)
+                        & cell.IsVar()
+                        & cell <= direction;
         }
 
-        private static Query HasFreeSides(Var<Direction>[,] grid, Var<Coord> coord)
+        private static Query IsCorridor(Var<Direction>[,] grid, Var<Coord> coord, Var<Direction> direction, Var<int> length)
+        {
+            return length <= 1
+                | (() =>
+                    {
+                        var previousCoord = new Var<Coord>();
+                        var previousLength = new Var<int>();
+
+                        return Offset(previousCoord, direction, coord)
+                                    & GetCell(grid, previousCoord, direction)
+                                    & length <= previousLength.Inc
+                                    & IsCorridor(grid, previousCoord, direction, previousLength);
+                    });
+        }
+
+        private static Query HasFreeSides(Var<Direction>[,] grid, Var<Coord> coord, int requiredCount)
         {
             return Query.Create(() =>
             {
@@ -102,7 +99,7 @@ namespace DungeonGen
                                 .AsEnumerable(adjacent)
                                 .Count();
 
-                return count >= 3;
+                return count >= requiredCount;
             });
         }
 
@@ -123,7 +120,6 @@ namespace DungeonGen
         {
             return Query.Create(() =>
             {
-                Coord value = oldCoord.Value;
                 Direction dirValue = direction.Value;
 
                 int xOffset = 0;
@@ -144,12 +140,19 @@ namespace DungeonGen
                         xOffset = 1;
                         break;
                 }
-                
-                return newCoord.TryUnify(new Coord
-                {
-                    X = value.X + xOffset,
-                    Y = value.Y + yOffset
-                });
+
+                return Query.Map(oldCoord,
+                                    newCoord,
+                                    value => new Coord
+                                    {
+                                        X = value.X + xOffset,
+                                        Y = value.Y + yOffset
+                                    },
+                                    value => new Coord
+                                    {
+                                        X = value.X - xOffset,
+                                        Y = value.Y - yOffset
+                                    });
             });
         }
 
@@ -223,39 +226,21 @@ namespace DungeonGen
             Right
         }
 
-        private static string Format<T>(Var<VarList<T>> listVariable)
+        private static void DrawGrid(Var<Direction>[,] grid)
         {
-            if (listVariable.HasValue)
+            for (int y = 0; y < height; y++)
             {
-                var currentItem = listVariable.Value;
-
-                string result = "";
-
-                while (!currentItem.IsEmptyList)
+                for (int row = 0; row < 3; row++)
                 {
-                    result += currentItem.Head.ToString();
-
-                    if (currentItem.Tail.HasValue)
+                    for (int x = 0; x < width; x++)
                     {
-                        currentItem = currentItem.Tail.Value;
+                        var cell = grid[x, y];
 
-                        if (!currentItem.IsEmptyList)
-                        {
-                            result += ", ";
-                        }
+                        DrawCell(row, cell);
                     }
-                    else
-                    {
-                        result += "| " + currentItem.Tail.ToString();
-                        currentItem = VarList<T>.EmptyList;
-                    }
+
+                    Console.WriteLine();
                 }
-
-                return $"[{result}]";
-            }
-            else
-            {
-                return listVariable.ToString();
             }
         }
 

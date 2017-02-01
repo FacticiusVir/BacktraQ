@@ -1,6 +1,35 @@
 ﻿namespace Keeper.BacktraQ
 {
-    public enum QueryResult
+    public struct QueryResult
+    {
+        public Query Continuation;
+        public Query Alternate;
+        public QueryResultType Type;
+
+        public static QueryResult Success
+        {
+            get
+            {
+                return new QueryResult
+                {
+                    Type = QueryResultType.Success
+                };
+            }
+        }
+
+        public static QueryResult Fail
+        {
+            get
+            {
+                return new QueryResult
+                {
+                    Type = QueryResultType.Fail
+                };
+            }
+        }
+    }
+
+    public enum QueryResultType
     {
         Fail,
         ChoicePoint,

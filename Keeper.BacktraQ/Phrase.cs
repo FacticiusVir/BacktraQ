@@ -88,7 +88,7 @@ namespace Keeper.BacktraQ
                 var elementList = VarList.Create(elementQueries);
                 var elementVar = new Var<Query>();
 
-                return elementVar <= elementList.RandomMember & elementVar.Value;
+                return elementVar <= elementList.RandomMember & (() => elementVar.Value);
             });
         }
 

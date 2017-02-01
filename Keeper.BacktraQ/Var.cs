@@ -63,6 +63,14 @@ namespace Keeper.BacktraQ
             }
         }
 
+        public bool IsBound
+        {
+            get
+            {
+                return this.State != VarState.Empty;
+            }
+        }
+
         internal override void Reset()
         {
             this.State = VarState.Empty;
@@ -70,7 +78,7 @@ namespace Keeper.BacktraQ
             this.reference = null;
         }
 
-        private Var<T> Dereference()
+        internal Var<T> Dereference()
         {
             if (this.State == VarState.Reference)
             {
