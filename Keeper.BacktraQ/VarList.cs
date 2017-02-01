@@ -115,52 +115,50 @@ namespace Keeper.BacktraQ
 
     public static class VarListExtensions
     {
-        public static Query UnifyHead<T>(this IVar<VarList<T>> list, Var<T> head)
+        public static Query UnifyHead<T>(this Var<VarList<T>> list, Var<T> head)
         {
             var listValue = VarList<T>.Create();
 
-            return list.Unify(listValue)
-                        & listValue.Head.Unify(head);
+            return list <= listValue & listValue.Head <= head;
         }
 
-        public static Query UnifyTail<T>(this IVar<VarList<T>> list, Var<VarList<T>> tail)
+        public static Query UnifyTail<T>(this Var<VarList<T>> list, Var<VarList<T>> tail)
         {
             var listValue = VarList<T>.Create();
 
-            return list.Unify(listValue)
-                        & listValue.Tail.Unify(tail);
+            return list <= listValue & listValue.Tail <= tail;
         }
 
-        public static Query Unify<T>(this IVar<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
+        public static Query Unify<T>(this Var<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
         {
             var listValue = VarList<T>.Create();
 
-            return list.Unify(listValue)
-                        & listValue.Head.Unify(head)
-                        & listValue.Tail.Unify(tail);
+            return list <= listValue
+                        & listValue.Head <= head
+                        & listValue.Tail <= tail;
         }
 
 
         public static Query Length<T>(this Var<VarList<T>> list, Var<int> length)
         {
-            return list.Unify(VarList<T>.EmptyList).And(length.Unify(0))
-                        .Or(() =>
+            return (list <= VarList<T>.EmptyList & length <= 0)
+                        | (() =>
                         {
-                            var innerLength = new Var<int>();
-                            var listValue = VarList<T>.Create();
+                            var tail = new Var<VarList<T>>();
+                            var tailLength = new Var<int>();
 
-                            return list.Unify(listValue)
-                                    & Length(listValue.Tail, innerLength)
-                                    & QMath.Inc(innerLength, length);
+                            return list.UnifyTail(tail)
+                                    & tail.Length(tailLength)
+                                    & QMath.Inc(tailLength, length);
                         });
         }
 
-        public static Query Member<T>(this IVar<VarList<T>> list, Var<T> element)
+        public static Query Member<T>(this Var<VarList<T>> list, Var<T> element)
         {
-            var tail = VarList.Create<T>();
+            var tail = new Var<VarList<T>>();
 
             return list.UnifyHead(element)
-                        | (list.UnifyTail(tail) & Query.Create(() => tail.Member(element)));
+                        | (list.UnifyTail(tail) & (() => tail.Member(element)));
         }
 
         public static Query NonVarMember<T>(this Var<VarList<T>> list, Var<T> element)
@@ -169,8 +167,8 @@ namespace Keeper.BacktraQ
             {
                 var tail = VarList.Create<T>();
 
-                return Query.Any(list.UnifyHead(element) & element.NonVar(),
-                                    list.UnifyTail(tail) & tail.NonVar());
+                return Query.Any(list.UnifyHead(element) & element.IsNonVar(),
+                                    list.UnifyTail(tail) & tail.IsNonVar());
             });
         }
 
@@ -181,33 +179,33 @@ namespace Keeper.BacktraQ
 
         public static Query Append<T>(this Var<VarList<T>> initial, Var<VarList<T>> other, Var<VarList<T>> result)
         {
-            return initial.Unify(VarList<T>.EmptyList) & (other.Unify(result))
-                         | Query.Create(() =>
+            return (initial <= VarList<T>.EmptyList & other <= result)
+                         | (() =>
                             {
-                                var initialList = VarList<T>.Create();
-                                var resultList = VarList<T>.Create();
+                                var head = new Var<T>();
+                                var initialTail = new Var<VarList<T>>();
+                                var resultTail = new Var<VarList<T>>();
 
-                                return initial.Unify(initialList)
-                                        & result.Unify(resultList)
-                                        & initialList.Head.Unify(resultList.Head)
-                                        & initialList.Tail.Append(other, resultList.Tail);
+                                return initial.Unify(head, initialTail)
+                                        & result.Unify(head, resultTail)
+                                        & initialTail.Append(other, resultTail);
                             });
         }
 
         public static Query Nth<T>(this Var<VarList<T>> list, Var<int> index, Var<T> element)
         {
-            var listValue = VarList<T>.Create();
+            var head = new Var<T>();
+            var tail = new Var<VarList<T>>();
 
-            return list.Unify(listValue)
-                        & ((listValue.Head.Unify(element)
-                            & index.Unify(0))
+            return list.Unify(head, tail)
+                        & ((head <= element & index <= 0)
                             | (() =>
-                            {
-                                var innerIndex = new Var<int>();
+                                {
+                                    var innerIndex = new Var<int>();
 
-                                return listValue.Tail.Nth(innerIndex, element)
-                                        & QMath.Inc(innerIndex, index);
-                            })
+                                    return tail.Nth(innerIndex, element)
+                                            & QMath.Inc(innerIndex, index);
+                                })
                         );
         }
 
@@ -221,20 +219,20 @@ namespace Keeper.BacktraQ
                     & list.Nth(randomIndex, member);
         }
 
-        public static IEnumerable<T> AsEnumerable<T>(this IVar<VarList<T>> list)
+        public static IEnumerable<T> AsEnumerable<T>(this Var<VarList<T>> list)
         {
             var element = new Var<T>();
 
             return list.Member(element).AsEnumerable(element);
         }
 
-        public static IEnumerable<Var<T>> AsVarEnumerable<T>(this IVar<VarList<T>> list)
+        public static IEnumerable<Var<T>> AsVarEnumerable<T>(this Var<VarList<T>> list)
         {
             if (!list.HasValue)
             {
                 throw new InvalidOperationException();
             }
-            else if (list.Unify(VarList<T>.EmptyList).Succeeds())
+            else if ((list <= VarList<T>.EmptyList).Succeeds())
             {
                 yield break;
             }
@@ -267,13 +265,13 @@ namespace Keeper.BacktraQ
             {
                 if (value.HasValue)
                 {
-                    return charList.Unify(VarList.Create(value.Value));
+                    return charList <= VarList.Create(value.Value);
                 }
                 else
                 {
                     var charVar = new Var<char>();
 
-                    return value.Unify(new string(charList.Member(charVar).AsEnumerable(charVar).ToArray()));
+                    return value <= new string(charList.Member(charVar).AsEnumerable(charVar).ToArray());
                 }
             });
         }

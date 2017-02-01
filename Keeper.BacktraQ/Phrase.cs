@@ -16,9 +16,9 @@ namespace Keeper.BacktraQ
         {
             var textChars = new Var<VarList<char>>();
 
-            return Query.IfThen(text.NonVar(), textChars.AsString(text))
+            return Query.IfThen(text.IsNonVar(), text <= textChars.AsString)
                             & this.BuildQuery(textChars, null)
-                            & textChars.AsString(text);
+                            & text <= textChars.AsString;
         }
 
         public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail = null)
@@ -45,7 +45,7 @@ namespace Keeper.BacktraQ
 
         public static implicit operator Phrase(Query query)
         {
-            return new Phrase((x, y) => x.Unify(y) & query);
+            return new Phrase((x, y) => x <= y & query);
         }
 
         public static Phrase Token(Var<VarList<char>> token)
@@ -66,7 +66,7 @@ namespace Keeper.BacktraQ
 
         public static Phrase SwitchPhrase<T>(Var<T> variable, params Tuple<T, Phrase>[] cases)
         {
-            return OptionPhrase(cases.Select(switchCase => ChainPhrase(variable.Unify(switchCase.Item1), switchCase.Item2)).ToArray());
+            return OptionPhrase(cases.Select(switchCase => ChainPhrase(variable <= switchCase.Item1, switchCase.Item2)).ToArray());
         }
 
         public static Phrase OptionPhrase(params Phrase[] elements)
@@ -83,13 +83,12 @@ namespace Keeper.BacktraQ
         {
             return new Phrase((text, tail) =>
             {
-                var elementQueries = elements.Select<Phrase, Func<Query>>(element => () => element.BuildQuery(text, tail)).ToArray();
+                var elementQueries = elements.Select(element => element.BuildQuery(text, tail)).ToArray();
 
                 var elementList = VarList.Create(elementQueries);
-                var elementVar = new Var<Func<Query>>();
+                var elementVar = new Var<Query>();
 
-                return elementList.RandomMember(elementVar)
-                                    .And(elementVar.Value());
+                return elementVar <= elementList.RandomMember & elementVar.Value;
             });
         }
 
@@ -118,17 +117,33 @@ namespace Keeper.BacktraQ
                     }
                     else
                     {
-                        var element = elements[elementIndex];
-                        var elementText = previousTail;
-                        var elementTail = nextTail;
-
-                        result = result.And(element.BuildQuery(elementText, elementTail));
+                        result = result & elements[elementIndex].BuildQuery(previousTail, nextTail);
                     }
 
                     previousTail = nextTail;
                 }
 
                 return result;
+            });
+        }
+
+        public static Phrase operator +(Phrase left, Phrase right)
+        {
+            return new Phrase((text, tail) =>
+            {
+                var mid = new Var<VarList<char>>();
+
+                return left.BuildQuery(text, mid)
+                        & right.BuildQuery(mid, tail);
+            });
+        }
+
+        public static Phrase operator ^(Phrase left, Phrase right)
+        {
+            return new Phrase((text, tail) =>
+            {
+                return left.BuildQuery(text, tail)
+                        | right.BuildQuery(text, tail);
             });
         }
     }

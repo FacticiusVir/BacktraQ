@@ -64,18 +64,18 @@ namespace GrammarGen
         {
             var person = new Var<Person>();
 
-            return ChainPhrase(NounPhrase(person, Subjective), " ", VerbPhrase(person), ".");
+            return NounPhrase(person, Subjective) + " " + VerbPhrase(person) + ".";
         }
 
         private static Phrase VerbPhrase(Var<Person> person = null)
         {
-            return ChainPhrase(Verb(person), " ", NounPhrase(tense: Objective));
+            return Verb(person) + " " + NounPhrase(tense: Objective);
         }
 
         private static Phrase NounPhrase(Var<Person> person = null, Var<Tense> tense = null)
         {
-            return OptionPhrase(ChainPhrase(person.Unify(Person.Third), Determiner(), " ", Noun()),
-                                Pronoun(person, tense));
+            return ((person <= Person.Third) + Determiner() + " " + Noun())
+                        ^ Pronoun(person, tense);
         }
 
         private static Phrase Pronoun(Var<Person> person = null, Var<Tense> tense = null)
@@ -94,7 +94,7 @@ namespace GrammarGen
 
         private static Phrase Noun()
         {
-            return OptionPhrase("room", "chair", "table");
+            return (Phrase)"room" ^ "chair" ^ "table";
         }
 
         private static Phrase Verb(Var<Person> person = null)

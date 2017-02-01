@@ -152,6 +152,26 @@ namespace Keeper.BacktraQ
         {
             return this.Unify(other);
         }
+
+        public static Query operator <=(Var<T> left, Var<T> right)
+        {
+            return left.Unify(right);
+        }
+
+        public static Query operator <=(Var<T> variable, Func<Var<T>, Query> bind)
+        {
+            return bind(variable);
+        }
+
+        public static Query operator >=(Var<T> left, Var<T> right)
+        {
+            return left.Unify(right);
+        }
+
+        public static Query operator >=(Var<T> variable, Func<Var<T>, Query> bind)
+        {
+            return bind(variable);
+        }
     }
 
     public static class VarExtensions
@@ -170,14 +190,14 @@ namespace Keeper.BacktraQ
                 : Query.Create(() => variable.TryUnify(other));
         }
 
-        public static Query Var<T>(this Var<T> variable)
+        public static Query IsVar<T>(this Var<T> variable)
         {
             return variable == null
                 ? Query.Success
                 : Query.Create(() => !variable.HasValue);
         }
 
-        public static Query NonVar<T>(this Var<T> variable)
+        public static Query IsNonVar<T>(this Var<T> variable)
         {
             return variable == null
                 ? Query.Fail

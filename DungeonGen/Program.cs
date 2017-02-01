@@ -80,14 +80,14 @@ namespace DungeonGen
             var direction = new Var<Direction>();
             var cell = new Var<Direction>();
 
-            return placedList.RandomMember(placedCoord)
-                                & DirectionList.RandomMember(direction)
+            return placedCoord <= placedList.RandomMember
+                                & direction <= DirectionList.RandomMember
                                 & Offset(placedCoord, direction, coord)
                                 & IsInBounds(coord)
                                 & HasFreeSides(grid, coord)
                                 & GetCell(grid, coord, cell)
-                                & cell.Var()
-                                & cell.Unify(direction);
+                                & cell.IsVar()
+                                & cell <= direction;
         }
 
         private static Query HasFreeSides(Var<Direction>[,] grid, Var<Coord> coord)
@@ -98,7 +98,7 @@ namespace DungeonGen
                 var cell = new Var<Direction>();
 
                 int count = (Adjacent(coord, adjacent)
-                                & ((GetCell(grid, adjacent, cell) & cell.Var()) | !IsInBounds(adjacent)))
+                                & ((GetCell(grid, adjacent, cell) & cell.IsVar()) | !IsInBounds(adjacent)))
                                 .AsEnumerable(adjacent)
                                 .Count();
 
@@ -108,14 +108,14 @@ namespace DungeonGen
 
         private static Query GetCell(Var<Direction>[,] grid, Var<Coord> coord, Var<Direction> cell)
         {
-            return IsInBounds(coord) & (() => grid[coord.Value.X, coord.Value.Y].Unify(cell));
+            return IsInBounds(coord) & (() => grid[coord.Value.X, coord.Value.Y] <= cell);
         }
 
         private static Query Adjacent(Var<Coord> coord, Var<Coord> adjacent)
         {
             var direction = new Var<Direction>();
 
-            return DirectionList.Member(direction)
+            return direction <= DirectionList.Member
                         & Offset(coord, direction, adjacent);
         }
 

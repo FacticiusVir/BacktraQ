@@ -64,7 +64,7 @@ namespace Keeper.BacktraQ.Tests
         {
             var variable = new Var<int>();
 
-            var target = variable.Unify(123);
+            var target = variable <= 123;
 
             Assert.IsTrue(target.Succeeds());
         }
@@ -74,7 +74,7 @@ namespace Keeper.BacktraQ.Tests
         {
             var variable = new Var<int>();
 
-            var target = variable.Unify(123);
+            var target = variable <= 123;
 
             Assert.IsTrue(target.Succeeds());
 
@@ -86,7 +86,7 @@ namespace Keeper.BacktraQ.Tests
         {
             var variable = new Var<int>();
 
-            var target = variable.Unify(123) & Query.Fail;
+            var target = variable <= 123 & Query.Fail;
 
             Assert.IsFalse(target.Succeeds());
 
@@ -98,7 +98,7 @@ namespace Keeper.BacktraQ.Tests
         {
             var variable = new Var<int>();
 
-            var target = Query.Not(variable.Unify(123));
+            var target = !(variable <= 123);
 
             Assert.IsFalse(target.Succeeds());
 

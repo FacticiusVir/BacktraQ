@@ -106,7 +106,7 @@ namespace Keeper.BacktraQ
             {
                 if (left.HasValue)
                 {
-                    return right.Unify(map(left.Value));
+                    return right <= map(left.Value);
                 }
                 else
                 {
@@ -121,11 +121,11 @@ namespace Keeper.BacktraQ
             {
                 if (left.HasValue)
                 {
-                    return right.Unify(map(left.Value));
+                    return right <= map(left.Value);
                 }
                 else if (right.HasValue)
                 {
-                    return left.Unify(unmap(right.Value));
+                    return left <= unmap(right.Value);
                 }
                 else
                 {
@@ -140,15 +140,15 @@ namespace Keeper.BacktraQ
             {
                 if (left.HasValue & right.HasValue)
                 {
-                    return result.Unify(map(left.Value, right.Value));
+                    return result <= map(left.Value, right.Value);
                 }
                 else if (right.HasValue && result.HasValue)
                 {
-                    return left.Unify(unmapLeft(right.Value, result.Value));
+                    return left <= unmapLeft(right.Value, result.Value);
                 }
                 else if (left.HasValue && result.HasValue)
                 {
-                    return right.Unify(unmapRight(left.Value, result.Value));
+                    return right <= unmapRight(left.Value, result.Value);
                 }
                 else
                 {
@@ -163,14 +163,14 @@ namespace Keeper.BacktraQ
             {
                 if (left.HasValue & right.HasValue)
                 {
-                    return result.Unify(construct(left.Value, right.Value));
+                    return result <= construct(left.Value, right.Value);
                 }
                 else if (result.HasValue)
                 {
                     var values = deconstruct(result.Value);
 
-                    return left.Unify(values.Item1)
-                            & right.Unify(values.Item2);
+                    return left <= values.Item1
+                            & right <= values.Item2;
                 }
                 else
                 {
