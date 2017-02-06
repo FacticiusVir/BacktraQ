@@ -11,5 +11,57 @@
         {
             return Query.Map(left, right, result, (x, y) => x + y, (x, y) => y - x, (x, y) => y - x);
         }
+
+        public static Query LessThan(this Var<int> left, Var<int> right)
+        {
+            return Query.Create(() =>
+            {
+                return left.Value < right.Value;
+            });
+        }
+
+        public static Query LessThanOrEqual(this Var<int> left, Var<int> right)
+        {
+            return Query.Create(() =>
+            {
+                return left.Value <= right.Value;
+            });
+        }
+
+        public static Query GreaterThan(this Var<int> left, Var<int> right)
+        {
+            return Query.Create(() =>
+            {
+                return left.Value > right.Value;
+            });
+        }
+
+        public static Query GreaterThanOrEqual(this Var<int> left, Var<int> right)
+        {
+            return Query.Create(() =>
+            {
+                return left.Value >= right.Value;
+            });
+        }
+
+        public static Query Between(this Var<int> value, Var<int> lower, Var<int> upper)
+        {
+            return lower.LessThanOrEqual(upper)
+                        & (() =>
+                        {
+                            if (value.HasValue)
+                            {
+                                return lower.LessThanOrEqual(value)
+                                        & value.LessThanOrEqual(upper);
+                            }
+                            else
+                            {
+                                var nextLower = new Var<int>();
+
+                                return value <= lower
+                                            | (nextLower <= lower.Inc & value.Between(nextLower, upper));
+                            }
+                        });
+        }
     }
 }

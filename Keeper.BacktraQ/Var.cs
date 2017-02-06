@@ -63,6 +63,18 @@ namespace Keeper.BacktraQ
             }
         }
 
+        public T GetValueOrDefault(T defaultValue = default(T))
+        {
+            if(this.HasValue)
+            {
+                return this.Value;
+            }
+            else
+            {
+                return defaultValue;
+            }
+        }
+
         public bool IsBound
         {
             get

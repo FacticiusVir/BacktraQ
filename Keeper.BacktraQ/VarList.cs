@@ -92,6 +92,18 @@ namespace Keeper.BacktraQ
             }
         }
 
+        public static Var<VarList<T>> Create(int length)
+        {
+            if (length <= 0)
+            {
+                return EmptyList;
+            }
+            else
+            {
+                return new VarList<T>(new Var<T>(), Create(length - 1));
+            }
+        }
+
         public static VarList<T> EmptyList
         {
             get

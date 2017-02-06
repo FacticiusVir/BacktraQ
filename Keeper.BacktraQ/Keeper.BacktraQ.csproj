@@ -54,6 +54,7 @@
     <Compile Include="TestQuery.cs" />
     <Compile Include="Trail.cs" />
     <Compile Include="Var.cs" />
+    <Compile Include="VarGrid.cs" />
     <Compile Include="VarList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

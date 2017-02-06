@@ -1,5 +1,6 @@
 ﻿using Keeper.BacktraQ;
 using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace DungeonGen
@@ -8,43 +9,43 @@ namespace DungeonGen
     {
         private const int height = 10, width = 10;
 
+        private const int roomCount = 40;
+
         static void Main(string[] args)
         {
             Console.WriteLine("Running");
 
-            var grid = new Var<Direction>[width, height];
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    grid[x, y] = new Var<Direction>();
-                }
-            }
+            var grid = new VarGrid<Direction>(width, height);
 
             var initialcoord = new Var<Coord>();
-            
-            var query = PlaceFirstCell(grid, initialcoord)
-                            & Query.Chain((oldList, newList) =>
-                                    {
-                                        var coord = new Var<Coord>();
 
-                                        return PlaceConnectedCell(grid, coord, oldList)
-                                                    & oldList.Append(coord, newList);
-                                    }, 40, VarList.Create(initialcoord));
-            
-            if (query.Succeeds())
+            var query = PlaceFirstCell(grid, initialcoord)
+                            & PlaceConnectedCells(grid, initialcoord)
+                            & DrawGrid(grid);
+
+            long startTimestamp = Stopwatch.GetTimestamp();
+
+            if (!query.Succeeds())
             {
-                DrawGrid(grid);
+                Console.WriteLine("Could not generate dungeon grid.");
             }
+
+            double duration = (Stopwatch.GetTimestamp() - startTimestamp) / (double)Stopwatch.Frequency;
+
+            Console.WriteLine($"Query took {duration:0.0##} seconds.");
 
             Console.WriteLine("Done");
             Console.ReadLine();
         }
 
+        private static Query PlaceConnectedCells(VarGrid<Direction> grid, Var<Coord> initialcoord)
+        {
+            return Query.Chain((oldList, newCoord) => PlaceConnectedCell(grid, newCoord, oldList), roomCount - 1, VarList.Create(initialcoord));
+        }
+
         private static Var<VarList<Direction>> DirectionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
 
-        private static Query PlaceFirstCell(Var<Direction>[,] grid, Var<Coord> coord)
+        private static Query PlaceFirstCell(VarGrid<Direction> grid, Var<Coord> coord)
         {
             var x = new Var<int>();
             var y = new Var<int>();
@@ -52,10 +53,10 @@ namespace DungeonGen
             return Query.Random(width, x)
                     & Query.Random(height, y)
                     & Coord.Construct(x, y, coord)
-                    & GetCell(grid, coord, Direction.None);
+                    & GetCell(grid, coord, Direction.Entrance);
         }
 
-        private static Query PlaceConnectedCell(Var<Direction>[,] grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
+        private static Query PlaceConnectedCell(VarGrid<Direction> grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
         {
             var placedCoord = new Var<Coord>();
             var direction = new Var<Direction>();
@@ -72,7 +73,7 @@ namespace DungeonGen
                         & cell <= direction;
         }
 
-        private static Query IsCorridor(Var<Direction>[,] grid, Var<Coord> coord, Var<Direction> direction, Var<int> length)
+        private static Query IsCorridor(VarGrid<Direction> grid, Var<Coord> coord, Var<Direction> direction, Var<int> length)
         {
             return length <= 1
                 | (() =>
@@ -87,25 +88,33 @@ namespace DungeonGen
                     });
         }
 
-        private static Query HasFreeSides(Var<Direction>[,] grid, Var<Coord> coord, int requiredCount)
+        private static Query HasFreeSides(VarGrid<Direction> grid, Var<Coord> coord, int requiredCount)
         {
-            return Query.Create(() =>
-            {
-                var adjacent = new Var<Coord>();
-                var cell = new Var<Direction>();
+            var adjacent = new Var<Coord>();
+            var cell = new Var<Direction>();
 
-                int count = (Adjacent(coord, adjacent)
-                                & ((GetCell(grid, adjacent, cell) & cell.IsVar()) | !IsInBounds(adjacent)))
-                                .AsEnumerable(adjacent)
-                                .Count();
+            var adjacencyQuery = Adjacent(coord, adjacent)
+                                    & (
+                                        (GetCell(grid, adjacent, cell) & cell.IsVar())
+                                        | !IsInBounds(adjacent)
+                                    );
 
-                return count >= requiredCount;
-            });
+            var results = new Var<VarList<Coord>>();
+            var count = new Var<int>();
+
+            return adjacencyQuery.FindAll(adjacent, results)
+                            & count <= results.Length
+                            & count.GreaterThanOrEqual(requiredCount);
         }
 
-        private static Query GetCell(Var<Direction>[,] grid, Var<Coord> coord, Var<Direction> cell)
+        private static Query GetCell(VarGrid<Direction> grid, Var<Coord> coord, Var<Direction> cell)
         {
-            return IsInBounds(coord) & (() => grid[coord.Value.X, coord.Value.Y] <= cell);
+            var x = new Var<int>();
+            var y = new Var<int>();
+
+            return IsInBounds(coord)
+                        & Coord.Construct(x, y, coord)
+                        & grid.XYth(x, y, cell);
         }
 
         private static Query Adjacent(Var<Coord> coord, Var<Coord> adjacent)
@@ -158,21 +167,26 @@ namespace DungeonGen
 
         private static Query IsInBounds(Var<Coord> coord)
         {
-            return Query.Create(() => coord.HasValue
-                                        && coord.Value.X >= 0
-                                        && coord.Value.Y >= 0
-                                        && coord.Value.X < width
-                                        && coord.Value.Y < height);
+            var x = new Var<int>();
+            var y = new Var<int>();
+
+            return Coord.Construct(x, y, coord)
+                        & x.Between(0, width - 1)
+                        & y.Between(0, height - 1);
         }
 
-        private static void DrawCell(int row, Var<Direction> cell)
+        private static void DrawCell(int row, Direction cell)
         {
-            if (cell.HasValue)
+            if (cell == Direction.None)
+            {
+                Console.Write("###");
+            }
+            else
             {
                 switch (row)
                 {
                     case 0:
-                        if (cell.Value == Direction.Up)
+                        if (cell == Direction.Up)
                         {
                             Console.Write("┌╨┐");
                         }
@@ -182,15 +196,15 @@ namespace DungeonGen
                         }
                         break;
                     case 1:
-                        if (cell.Value == Direction.Left)
+                        if (cell == Direction.Left)
                         {
                             Console.Write("╡ │");
                         }
-                        else if (cell.Value == Direction.Right)
+                        else if (cell == Direction.Right)
                         {
                             Console.Write("│ ╞");
                         }
-                        else if (cell.Value == Direction.None)
+                        else if (cell == Direction.Entrance)
                         {
                             Console.Write("│@│");
                         }
@@ -200,7 +214,7 @@ namespace DungeonGen
                         }
                         break;
                     case 2:
-                        if (cell.Value == Direction.Down)
+                        if (cell == Direction.Down)
                         {
                             Console.Write("└╥┘");
                         }
@@ -211,37 +225,40 @@ namespace DungeonGen
                         break;
                 }
             }
-            else
-            {
-                Console.Write("###");
-            }
         }
 
         private enum Direction
         {
             None,
+            Entrance,
             Up,
             Down,
             Left,
             Right
         }
 
-        private static void DrawGrid(Var<Direction>[,] grid)
+        private static Query DrawGrid(VarGrid<Direction> grid)
         {
-            for (int y = 0; y < height; y++)
-            {
-                for (int row = 0; row < 3; row++)
-                {
-                    for (int x = 0; x < width; x++)
+            var gridArray = new Var<Direction[,]>();
+
+            return grid.ToArray(gridArray)
+                    & (() =>
                     {
-                        var cell = grid[x, y];
+                        for (int y = 0; y < height; y++)
+                        {
+                            for (int row = 0; row < 3; row++)
+                            {
+                                for (int x = 0; x < width; x++)
+                                {
+                                    DrawCell(row, gridArray.Value[x, y]);
+                                }
 
-                        DrawCell(row, cell);
-                    }
+                                Console.WriteLine();
+                            }
+                        }
 
-                    Console.WriteLine();
-                }
-            }
+                        return Query.Success;
+                    });
         }
 
         private struct Coord
@@ -251,8 +268,7 @@ namespace DungeonGen
 
             public static Query Construct(Var<int> x, Var<int> y, Var<Coord> coord)
             {
-                return Query.Construct(x,
-                                        y,
+                return Query.Construct(x, y,
                                         coord,
                                         (xValue, yValue) => new Coord { X = xValue, Y = yValue },
                                         coordValue => Tuple.Create(coordValue.X, coordValue.Y));

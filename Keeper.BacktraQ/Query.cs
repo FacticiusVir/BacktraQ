@@ -19,6 +19,14 @@ namespace Keeper.BacktraQ
             });
         }
 
+        public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results)
+        {
+            return Query.Create(() =>
+            {
+                return results.Unify(this.AsVarList(variable));
+            });
+        }
+
         public static Query Create(Func<bool> predicate)
         {
             return new TestQuery(predicate);
@@ -79,8 +87,24 @@ namespace Keeper.BacktraQ
             return result;
         }
 
+        public static Query Chain<T>(Func<Var<VarList<T>>, Var<T>, Query> subQuery, int repetitions, Var<VarList<T>> input, Var<VarList<T>> output = null)
+        {
+            return Chain((oldList, newList) =>
+            {
+                var newItem = new Var<T>();
+
+                return subQuery(oldList, newItem)
+                            & oldList.Append(newItem, newList);
+            }, repetitions, input, output);
+        }
+
         public static Query Chain<T>(Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)
         {
+            if (repetitions == 0)
+            {
+                return Query.Success;
+            }
+
             output = output ?? new Var<T>();
 
             var intermediary = new Var<T>();
@@ -268,13 +292,13 @@ namespace Keeper.BacktraQ
         {
             var resultList = new List<Var<T>>();
 
-            foreach(var result in query)
+            foreach (var result in query)
             {
-                if(resultVariable.HasValue)
+                if (resultVariable.HasValue)
                 {
                     resultList.Add(resultVariable.Value);
                 }
-                else if(resultVariable.IsBound)
+                else if (resultVariable.IsBound)
                 {
                     resultList.Add(resultVariable.Dereference());
                 }
