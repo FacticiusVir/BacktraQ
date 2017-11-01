@@ -1,7 +1,8 @@
 ﻿using Keeper.BacktraQ;
 using System;
 using System.Diagnostics;
-using System.Linq;
+
+using static Keeper.BacktraQ.Query;
 
 namespace DungeonGen
 {
@@ -16,10 +17,8 @@ namespace DungeonGen
             Console.WriteLine("Running");
 
             var grid = new VarGrid<Direction>(width, height);
-
-            var initialcoord = new Var<Coord>();
-
-            var query = PlaceFirstCell(grid, initialcoord)
+            
+            var query = PlaceFirstCell(grid, out var initialcoord)
                             & PlaceConnectedCells(grid, initialcoord)
                             & DrawGrid(grid);
 
@@ -45,30 +44,23 @@ namespace DungeonGen
 
         private static Var<VarList<Direction>> DirectionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
 
-        private static Query PlaceFirstCell(VarGrid<Direction> grid, Var<Coord> coord)
+        private static Query PlaceFirstCell(VarGrid<Direction> grid, out Var<Coord> coord)
         {
-            var x = new Var<int>();
-            var y = new Var<int>();
-
-            return Query.Random(width, x)
-                    & Query.Random(height, y)
-                    & Coord.Construct(x, y, coord)
+            return Query.Random(width, out var x)
+                    & Query.Random(height, out var y)
+                    & Coord.Construct(x, y, out coord)
                     & GetCell(grid, coord, Direction.Entrance);
         }
 
         private static Query PlaceConnectedCell(VarGrid<Direction> grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
         {
-            var placedCoord = new Var<Coord>();
-            var direction = new Var<Direction>();
-            var cell = new Var<Direction>();
-
-            return placedCoord <= placedList.RandomMember
-                        & direction <= DirectionList.RandomMember
+            return placedList.RandomMember(out var placedCoord)
+                        & DirectionList.RandomMember(out var direction)
                         & Offset(placedCoord, direction, coord)
                         & IsInBounds(coord)
                         & HasFreeSides(grid, coord, 3)
                         & !IsCorridor(grid, coord, direction, 3)
-                        & GetCell(grid, coord, cell)
+                        & GetCell(grid, coord, NewVar<Direction>(out var cell))
                         & cell.IsVar()
                         & cell <= direction;
         }
@@ -76,33 +68,23 @@ namespace DungeonGen
         private static Query IsCorridor(VarGrid<Direction> grid, Var<Coord> coord, Var<Direction> direction, Var<int> length)
         {
             return length <= 1
-                | (() =>
-                    {
-                        var previousCoord = new Var<Coord>();
-                        var previousLength = new Var<int>();
-
-                        return Offset(previousCoord, direction, coord)
-                                    & GetCell(grid, previousCoord, direction)
-                                    & length <= previousLength.Inc
-                                    & IsCorridor(grid, previousCoord, direction, previousLength);
-                    });
+                | (() => Offset(NewVar<Coord>(out var previousCoord), direction, coord)
+                                & GetCell(grid, previousCoord, direction)
+                                & length <= NewVar<int>(out var previousLength).Inc
+                                & IsCorridor(grid, previousCoord, direction, previousLength));
         }
 
         private static Query HasFreeSides(VarGrid<Direction> grid, Var<Coord> coord, int requiredCount)
         {
-            var adjacent = new Var<Coord>();
-            var cell = new Var<Direction>();
+            var isUnset = GetCell(grid, NewVar<Coord>(out var adjacent), NewVar<Direction>(out var cell)) & cell.IsVar();
 
-            var adjacencyQuery = Adjacent(coord, adjacent)
-                                    & (
-                                        (GetCell(grid, adjacent, cell) & cell.IsVar())
-                                        | !IsInBounds(adjacent)
-                                    );
+            var adjacenctFree = Adjacent(coord, adjacent)
+                                    & (isUnset | !IsInBounds(adjacent));
 
             var results = new Var<VarList<Coord>>();
             var count = new Var<int>();
 
-            return adjacencyQuery.FindAll(adjacent, results)
+            return adjacenctFree.FindAll(adjacent, results)
                             & count <= results.Length
                             & count.GreaterThanOrEqual(requiredCount);
         }
@@ -127,50 +109,16 @@ namespace DungeonGen
 
         private static Query Offset(Var<Coord> oldCoord, Var<Direction> direction, Var<Coord> newCoord)
         {
-            return Query.Create(() =>
-            {
-                Direction dirValue = direction.Value;
-
-                int xOffset = 0;
-                int yOffset = 0;
-
-                switch (dirValue)
-                {
-                    case Direction.Down:
-                        yOffset = -1;
-                        break;
-                    case Direction.Up:
-                        yOffset = 1;
-                        break;
-                    case Direction.Right:
-                        xOffset = -1;
-                        break;
-                    case Direction.Left:
-                        xOffset = 1;
-                        break;
-                }
-
-                return Query.Map(oldCoord,
-                                    newCoord,
-                                    value => new Coord
-                                    {
-                                        X = value.X + xOffset,
-                                        Y = value.Y + yOffset
-                                    },
-                                    value => new Coord
-                                    {
-                                        X = value.X - xOffset,
-                                        Y = value.Y - yOffset
-                                    });
-            });
+            return Query.Map(out var xOffset, out var yOffset, direction, (0, -1, Direction.Down), (0, 1, Direction.Up), (-1, 0, Direction.Right), (1, 0, Direction.Left))
+                    & Coord.Construct(out var oldX, out var oldY, oldCoord)
+                    & QMath.Add(oldX, xOffset, out var newX)
+                    & QMath.Add(oldY, yOffset, out var newY)
+                    & Coord.Construct(newX, newY, newCoord);
         }
 
         private static Query IsInBounds(Var<Coord> coord)
         {
-            var x = new Var<int>();
-            var y = new Var<int>();
-
-            return Coord.Construct(x, y, coord)
+            return Coord.Construct(out var x, out var y, coord)
                         & x.Between(0, width - 1)
                         & y.Between(0, height - 1);
         }
@@ -239,9 +187,7 @@ namespace DungeonGen
 
         private static Query DrawGrid(VarGrid<Direction> grid)
         {
-            var gridArray = new Var<Direction[,]>();
-
-            return grid.ToArray(gridArray)
+            return grid.ToArray(out var gridArray)
                     & (() =>
                     {
                         for (int y = 0; y < height; y++)
@@ -263,15 +209,25 @@ namespace DungeonGen
 
         private struct Coord
         {
-            public int X;
-            public int Y;
+            public readonly int X;
+            public readonly int Y;
+            
+            public static Query Construct(Var<int> x, Var<int> y, out Var<Coord> coord) => Construct(x, y, NewVar(out coord));
+
+            public static Query Construct(out Var<int> x, out Var<int> y, Var<Coord> coord) => Construct(NewVar(out x), NewVar(out y), coord);
 
             public static Query Construct(Var<int> x, Var<int> y, Var<Coord> coord)
             {
                 return Query.Construct(x, y,
                                         coord,
-                                        (xValue, yValue) => new Coord { X = xValue, Y = yValue },
+                                        (xValue, yValue) => new Coord(xValue, yValue),
                                         coordValue => Tuple.Create(coordValue.X, coordValue.Y));
+            }
+
+            public Coord(int x, int y)
+            {
+                this.X = x;
+                this.Y = y;
             }
 
             public override string ToString()

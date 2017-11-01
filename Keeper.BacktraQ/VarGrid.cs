@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+
+using static Keeper.BacktraQ.Query;
 
 namespace Keeper.BacktraQ
 {
@@ -50,9 +48,11 @@ namespace Keeper.BacktraQ
                     & column.Nth(y, element);
         }
 
+        public Query ToArray(out Var<T[,]> array, T defaultValue = default(T)) => ToArray(NewVar(out array), defaultValue);
+
         public Query ToArray(Var<T[,]> array, T defaultValue = default(T))
         {
-            return Query.Create(() =>
+            return Create(() =>
             {
                 var x = new Var<int>();
                 var y = new Var<int>();
@@ -66,7 +66,7 @@ namespace Keeper.BacktraQ
                     {
                         if (!arrayValue[x.Value, y.Value].Equals(element.Value))
                         {
-                            return Query.Fail;
+                            return Fail;
                         }
                     }
                 }
@@ -82,7 +82,7 @@ namespace Keeper.BacktraQ
                     return array.Unify(arrayValue);
                 }
 
-                return Query.Success;
+                return Success;
             });
         }
     }

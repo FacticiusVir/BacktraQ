@@ -19,6 +19,16 @@ namespace Keeper.BacktraQ
             });
         }
 
+        public static Var<T> NewVar<T>(out Var<T> variable)
+        {
+            return variable = new Var<T>();
+        }
+
+        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list)
+        {
+            return list = new Var<VarList<T>>();
+        }
+
         public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results)
         {
             return Query.Create(() =>
@@ -164,6 +174,20 @@ namespace Keeper.BacktraQ
             });
         }
 
+        public static Query Map<T, V, W>(out Var<T> t, out Var<V> v, Var<W> w, params (T, V, W)[] mappings) => Map(NewVar(out t), NewVar(out v), w, mappings);
+
+        public static Query Map<T, V, W>(Var<T> t, Var<V> v, Var<W> w, params (T, V, W)[] mappings)
+        {
+            return Query.Any(mappings.Select(mapping =>
+            {
+                return t <= mapping.Item1
+                        & v <= mapping.Item2
+                        & w <= mapping.Item3;
+            }));
+        }
+
+        public static Query Construct<T, V, W>(out Var<T> left, out Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct = null) => Construct(NewVar(out left), NewVar(out right), result, construct, deconstruct);
+
         public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct = null)
         {
             return Query.Create(() =>
@@ -207,10 +231,11 @@ namespace Keeper.BacktraQ
             }
         }
 
-        public static Query Random(int bound, Var<int> value)
-        {
-            return Random((Var<int>)bound, value);
-        }
+        public static Query Random(out Var<int> bound, Var<int> value) =>  Random(NewVar(out bound), value);
+
+        public static Query Random(Var<int> bound, out Var<int> value) =>  Random(bound, NewVar(out value));
+        
+        public static Query Random(out Var<int> bound, out Var<int> value) => Random(NewVar(out bound), NewVar(out value));
 
         public static Query Random(Var<int> bound, Var<int> value)
         {

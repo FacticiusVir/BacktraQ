@@ -221,6 +221,8 @@ namespace Keeper.BacktraQ
                         );
         }
 
+        public static Query RandomMember<T>(this Var<VarList<T>> list, out Var<T> member) => RandomMember(list, Query.NewVar(out member));
+
         public static Query RandomMember<T>(this Var<VarList<T>> list, Var<T> member)
         {
             var listLength = new Var<int>();
