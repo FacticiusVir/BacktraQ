@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ActionQuery.cs" />
     <Compile Include="CommitQuery.cs" />
     <Compile Include="EnumerableQuery.cs" />
     <Compile Include="IUnifiable.cs" />

@@ -10,13 +10,9 @@ namespace Keeper.BacktraQ
     {
         protected internal abstract QueryResult Run();
 
-        public static Query Create(Action action)
+        public static Query Create(Action action, Action rollback = null)
         {
-            return new TestQuery(() =>
-            {
-                action();
-                return true;
-            });
+            return new ActionQuery(action, rollback);
         }
 
         public static Var<T> NewVar<T>(out Var<T> variable)

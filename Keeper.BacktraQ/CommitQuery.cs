@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Keeper.BacktraQ
+﻿namespace Keeper.BacktraQ
 {
     public class CommitQuery
         : Query
