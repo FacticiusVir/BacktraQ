@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using static Keeper.BacktraQ.Query;
+
 namespace Keeper.BacktraQ
 {
     public static class VarList
@@ -140,6 +142,12 @@ namespace Keeper.BacktraQ
 
             return list <= listValue & listValue.Tail <= tail;
         }
+
+        public static Query Unify<T>(this Var<VarList<T>> list, out Var<T> head, Var<VarList<T>> tail) => Unify(list, NewVar(out head), tail);
+
+        public static Query Unify<T>(this Var<VarList<T>> list, Var<T> head, out Var<VarList<T>> tail) => Unify(list, head, NewVar(out tail));
+
+        public static Query Unify<T>(this Var<VarList<T>> list, out Var<T> head, out Var<VarList<T>> tail) => Unify(list, NewVar(out head), NewVar(out tail));
 
         public static Query Unify<T>(this Var<VarList<T>> list, Var<T> head, Var<VarList<T>> tail)
         {

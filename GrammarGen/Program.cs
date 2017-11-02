@@ -1,6 +1,5 @@
 ﻿using Keeper.BacktraQ;
 using System;
-using System.Linq;
 
 using static GrammarGen.Program.Definiteness;
 using static GrammarGen.Program.Tense;
@@ -45,12 +44,8 @@ namespace GrammarGen
 
         private static Query Capitalise(Var<VarList<char>> lower, Var<VarList<char>> upper)
         {
-            var tail = new Var<VarList<char>>();
-            var lowerHead = new Var<char>();
-            var upperHead = new Var<char>();
-
-            return lower.Unify(lowerHead, tail)
-                        & upper.Unify(upperHead, tail)
+            return lower.Unify(out var lowerHead, out var tail)
+                        & upper.Unify(out var upperHead, tail)
                         & Capitalise(lowerHead, upperHead);
         }
 

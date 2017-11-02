@@ -34,9 +34,7 @@ namespace Keeper.BacktraQ
         }
         public Query RandomMember(Var<T> element)
         {
-            var column = new Var<VarList<T>>();
-
-            return column <= grid.RandomMember
+            return grid.RandomMember(out var column)
                     & element <= column.RandomMember;
         }
 

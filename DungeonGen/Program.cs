@@ -10,14 +10,14 @@ namespace DungeonGen
     {
         private const int height = 10, width = 10;
 
-        private const int roomCount = 40;
+        private const int roomCount = 20;
 
         static void Main(string[] args)
         {
             Console.WriteLine("Running");
 
             var grid = new VarGrid<Direction>(width, height);
-            
+
             var query = PlaceFirstCell(grid, out var initialcoord)
                             & PlaceConnectedCells(grid, initialcoord)
                             & DrawGrid(grid);
@@ -39,15 +39,15 @@ namespace DungeonGen
 
         private static Query PlaceConnectedCells(VarGrid<Direction> grid, Var<Coord> initialcoord)
         {
-            return Query.Chain((oldList, newCoord) => PlaceConnectedCell(grid, newCoord, oldList), roomCount - 1, VarList.Create(initialcoord));
+            return Chain((oldList, newCoord) => PlaceConnectedCell(grid, newCoord, oldList), roomCount - 1, VarList.Create(initialcoord));
         }
 
         private static Var<VarList<Direction>> DirectionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
 
         private static Query PlaceFirstCell(VarGrid<Direction> grid, out Var<Coord> coord)
         {
-            return Query.Random(width, out var x)
-                    & Query.Random(height, out var y)
+            return Random(width, out var x)
+                    & Random(height, out var y)
                     & Coord.Construct(x, y, out coord)
                     & GetCell(grid, coord, Direction.Entrance);
         }
@@ -91,11 +91,8 @@ namespace DungeonGen
 
         private static Query GetCell(VarGrid<Direction> grid, Var<Coord> coord, Var<Direction> cell)
         {
-            var x = new Var<int>();
-            var y = new Var<int>();
-
             return IsInBounds(coord)
-                        & Coord.Construct(x, y, coord)
+                        & Coord.Construct(out var x, out var y, coord)
                         & grid.XYth(x, y, cell);
         }
 
@@ -110,10 +107,11 @@ namespace DungeonGen
         private static Query Offset(Var<Coord> oldCoord, Var<Direction> direction, Var<Coord> newCoord)
         {
             return Query.Map(out var xOffset, out var yOffset, direction, (0, -1, Direction.Down), (0, 1, Direction.Up), (-1, 0, Direction.Right), (1, 0, Direction.Left))
-                    & Coord.Construct(out var oldX, out var oldY, oldCoord)
-                    & QMath.Add(oldX, xOffset, out var newX)
-                    & QMath.Add(oldY, yOffset, out var newY)
-                    & Coord.Construct(newX, newY, newCoord);
+                    & IfThen(oldCoord.IsNonVar(), Coord.Construct(out var oldX, out var oldY, oldCoord), Coord.Construct(out var newX, out var newY, newCoord))
+                    & QMath.Add(oldX, xOffset, newX)
+                    & QMath.Add(oldY, yOffset, newY)
+                    & Coord.Construct(newX, newY, newCoord)
+                    & Coord.Construct(oldX, oldY, oldCoord);
         }
 
         private static Query IsInBounds(Var<Coord> coord)
