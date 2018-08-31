@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using static Keeper.BacktraQ.Query;
+
 namespace Keeper.BacktraQ
 {
     class Program
@@ -12,8 +14,10 @@ namespace Keeper.BacktraQ
             UnifyTwoVariables();
             UnifyOptions();
             GetListMembers();
+            ShuffleList();
             Negation();
-            SimpleDCG();
+            SimpleDcg();
+            DcgState();
             QueryTimeCodeExecution();
 
             Console.ReadLine();
@@ -116,6 +120,31 @@ namespace Keeper.BacktraQ
             Console.WriteLine($"Result count: {count}");
         }
 
+        private static void ShuffleList()
+        {
+            DisplayHeader("Shuffle List");
+
+            // Create unbound variable
+            var member = new Var<int>();
+
+            // Create pre-populated list
+            var list = VarList.Create(1, 2, 3, 4);
+
+            // Create query as "unify member with each member of the list in a random order"
+            var query = member <= list.RandomMember;
+
+            // Run query and display all results
+            int count = 0;
+
+            foreach (var result in query)
+            {
+                Console.WriteLine($"member = {member}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+        }
+
         private static void Negation()
         {
             DisplayHeader("Negation");
@@ -144,7 +173,7 @@ namespace Keeper.BacktraQ
             Console.WriteLine($"Result count: {count}");
         }
 
-        private static void SimpleDCG()
+        private static void SimpleDcg()
         {
             DisplayHeader("Simple DCG");
 
@@ -157,22 +186,71 @@ namespace Keeper.BacktraQ
             // Build a phrase from combined parts
             var sentence = "I write " + programmingLanguage + " on a " + os + " box.";
 
-            // Create an unbound character list
-            var sentenceText = new Var<VarList<char>>();
+            // Create a string variable
+            var sentenceText = new Var<string>();
 
             // Create query as "render the 'sentence' phrase to sentenceText"
-            var query = sentence.BuildQuery(sentenceText);
+            var query = sentenceText <= sentence.AsString;
 
             // Run query and display all results
             int count = 0;
 
             foreach (var result in query)
             {
-                Console.WriteLine($"sentenceText = {sentenceText.AsString()}");
+                Console.WriteLine($"sentenceText = {sentenceText}");
                 count++;
             }
 
             Console.WriteLine($"Result count: {count}");
+        }
+
+        private static void DcgState()
+        {
+            DisplayHeader("DCG State");
+
+            // Map numbers to text
+            var numberPart = Phrase.SwitchPhrase((0, "zero"),
+                                                    (1, "one"),
+                                                    (2, "two"),
+                                                    (3, "three"),
+                                                    (4, "four"),
+                                                    (5, "five"),
+                                                    (6, "six"),
+                                                    (7, "seven"),
+                                                    (8, "eight"),
+                                                    (9, "nine"));
+
+            // Create phrase parts for singular & plural
+            var suffixPart = Phrase.SwitchPhrase((false, ""), (true, "s"));
+
+            var verbPart = Phrase.SwitchPhrase((false, "is"), (true, "are"));
+
+            // Build a phrase from the parts
+            // Check the phrase count and the number-tense match
+            Phrase sentence(Var<int> itemCount) => "There " + verbPart(NewVar<bool>(out var isPlural)) + " " + numberPart(itemCount) + " item" + suffixPart(isPlural) + "." + Map(itemCount, isPlural, countValue => countValue != 1);
+            
+            var rng = new Random();
+            var sentenceText = new Var<string>();
+
+            // Create query as "render the 'sentence' phrase for a random number of items to sentenceText"
+            var query = sentenceText <= sentence(rng.Next(1, 10)).AsString;
+            
+            // Run query and display all results
+            int count = 0;
+
+            foreach (var result in query)
+            {
+                Console.WriteLine($"sentenceText = {sentenceText}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+        }
+
+        private static void NaturalGrammar()
+        {
+            DisplayHeader("Natural Grammar");
+            
         }
 
         private static void QueryTimeCodeExecution()

@@ -8,9 +8,9 @@ namespace DungeonGen
 {
     class Program
     {
-        private const int height = 10, width = 10;
+        private const int height = 8, width = 20;
 
-        private const int roomCount = 20;
+        private const int roomCount = 40;
 
         static void Main(string[] args)
         {
@@ -54,8 +54,8 @@ namespace DungeonGen
 
         private static Query PlaceConnectedCell(VarGrid<Direction> grid, Var<Coord> coord, Var<VarList<Coord>> placedList)
         {
-            return placedList.RandomMember(out var placedCoord)
-                        & DirectionList.RandomMember(out var direction)
+            return NewVar<Coord>(out var placedCoord) <= placedList.RandomMember
+                        & NewVar<Direction>(out var direction) <= DirectionList.RandomMember
                         & Offset(placedCoord, direction, coord)
                         & IsInBounds(coord)
                         & HasFreeSides(grid, coord, 3)
@@ -219,7 +219,7 @@ namespace DungeonGen
                 return Query.Construct(x, y,
                                         coord,
                                         (xValue, yValue) => new Coord(xValue, yValue),
-                                        coordValue => Tuple.Create(coordValue.X, coordValue.Y));
+                                        coordValue => (coordValue.X, coordValue.Y));
             }
 
             public Coord(int x, int y)

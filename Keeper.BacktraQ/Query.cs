@@ -10,6 +10,11 @@ namespace Keeper.BacktraQ
     {
         protected internal abstract QueryResult Run();
 
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.AsEnumerable().GetEnumerator();
+        }
+
         public static Query Create(Action action, Action rollback = null)
         {
             return new ActionQuery(action, rollback);
@@ -182,9 +187,9 @@ namespace Keeper.BacktraQ
             }));
         }
 
-        public static Query Construct<T, V, W>(out Var<T> left, out Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct = null) => Construct(NewVar(out left), NewVar(out right), result, construct, deconstruct);
+        public static Query Construct<T, V, W>(out Var<T> left, out Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, (T, V)> deconstruct = null) => Construct(NewVar(out left), NewVar(out right), result, construct, deconstruct);
 
-        public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, Tuple<T, V>> deconstruct = null)
+        public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, (T, V)> deconstruct = null)
         {
             return Query.Create(() =>
             {
@@ -234,8 +239,7 @@ namespace Keeper.BacktraQ
         public static Query Random(out Var<int> bound, out Var<int> value) => Random(NewVar(out bound), NewVar(out value));
 
         public static Query Random(Var<int> bound, Var<int> value)
-        {
-            return Create(() => bound.HasValue)
+            => Create(() => bound.HasValue)
                 .And(() =>
                     {
                         var sequence = Enumerable.Range(0, bound.Value).ToList();
@@ -244,7 +248,6 @@ namespace Keeper.BacktraQ
 
                         return EnumerableQuery.Create(sequence, value);
                     });
-        }
 
         public static Query Not(Query query)
         {
@@ -264,11 +267,6 @@ namespace Keeper.BacktraQ
                 list[k] = list[n];
                 list[n] = value;
             }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.AsEnumerable().GetEnumerator();
         }
 
         public static Query operator &(Query left, Query right)

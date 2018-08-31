@@ -7,8 +7,6 @@ namespace Keeper.BacktraQ
     {
         private readonly Action action;
         private readonly Action rollback;
-
-        private bool hasRun;
         
         public ActionQuery(Action action, Action rollback = null)
         {

@@ -126,9 +126,8 @@ namespace Keeper.BacktraQ
                 if (derefOther.HasValue)
                 {
                     //TODO Implement general type unification
-                    var unifiable = derefThis.value as IUnifiable<T>;
 
-                    if (unifiable != null)
+                    if (derefThis.value is IUnifiable<T> unifiable)
                     {
                         return unifiable.TryUnify(derefOther.Value);
                     }

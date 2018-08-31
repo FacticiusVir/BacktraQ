@@ -5,7 +5,7 @@ namespace Keeper.BacktraQ
 {
     public class Phrase
     {
-        private Func<Var<VarList<char>>, Var<VarList<char>>, Query> function;
+        private readonly Func<Var<VarList<char>>, Var<VarList<char>>, Query> function;
 
         public Phrase(Func<Var<VarList<char>>, Var<VarList<char>>, Query> function)
         {
@@ -17,11 +17,13 @@ namespace Keeper.BacktraQ
             var textChars = new Var<VarList<char>>();
 
             return Query.IfThen(text.IsNonVar(), text <= textChars.AsString)
-                            & this.BuildQuery(textChars, null)
+                            & this.BuildQuery(textChars)
                             & text <= textChars.AsString;
         }
 
-        public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail = null)
+        public Query BuildQuery(Var<VarList<char>> text) => BuildQuery(text, null);
+
+        public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail)
         {
             tail = tail ?? VarList.Create("");
 
@@ -59,12 +61,12 @@ namespace Keeper.BacktraQ
             });
         }
 
-        public static Tuple<T, Phrase> SwitchCase<T>(T value, Phrase phrase)
+        public static Func<Var<T>, Phrase> SwitchPhrase<T>(params (T, Phrase)[] cases)
         {
-            return Tuple.Create(value, phrase);
+            return variable => OptionPhrase(cases.Select(switchCase => ChainPhrase(variable <= switchCase.Item1, switchCase.Item2)).ToArray());
         }
 
-        public static Phrase SwitchPhrase<T>(Var<T> variable, params Tuple<T, Phrase>[] cases)
+        public static Phrase SwitchPhrase<T>(Var<T> variable, params (T, Phrase)[] cases)
         {
             return OptionPhrase(cases.Select(switchCase => ChainPhrase(variable <= switchCase.Item1, switchCase.Item2)).ToArray());
         }
@@ -145,6 +147,26 @@ namespace Keeper.BacktraQ
                 return left.BuildQuery(text, tail)
                         | right.BuildQuery(text, tail);
             });
+        }
+    }
+
+    public class Phrase<T>
+    {
+        private readonly Func<Var<VarList<char>>, Var<VarList<char>>, Query> function;
+
+        private readonly Var<T> variable;
+
+        public Phrase(Func<Var<VarList<char>>, Var<VarList<char>>, Query> function, Var<T> variable)
+        {
+            this.function = function;
+            this.variable = variable;
+        }
+
+        public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail, Var<T> state)
+        {
+            tail = tail ?? VarList.Create("");
+
+            return function(text, tail);
         }
     }
 }
