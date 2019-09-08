@@ -6,23 +6,18 @@ namespace Keeper.BacktraQ
 {
     public class Trail
     {
-        private Trail parent;
-        private Stack<ChoiceFrame> frames = new Stack<ChoiceFrame>();
+        private readonly Trail parent;
+        private readonly Stack<ChoiceFrame> frames;
 
         [ThreadStatic]
         private static Trail current;
 
-        public static Trail Current
-        {
-            get
-            {
-                return current;
-            }
-        }
+        public static Trail Current => current;
 
         public Trail(Trail parent)
         {
             this.parent = parent;
+            this.frames = new Stack<ChoiceFrame>();
         }
 
         internal static void Enter()
@@ -34,22 +29,24 @@ namespace Keeper.BacktraQ
 
         internal static void Exit(bool revertAll = false)
         {
+            var trail = current;
+
             if (revertAll)
             {
-                while (Current.Depth > 0)
+                while (trail.Depth > 0)
                 {
-                    Current.Backtrack();
+                    trail.Backtrack();
                 }
             }
-            else if (Current.parent != null)
+            else if (trail.parent is Trail parent)
             {
-                foreach (var frame in Current.frames.Reverse())
+                foreach (var frame in trail.frames.Reverse())
                 {
-                    Current.parent.frames.Push(frame);
+                    parent.frames.Push(frame);
                 }
             }
 
-            current = Current.parent;
+            current = trail.parent;
         }
 
         internal void ChoicePoint(Query continuation)

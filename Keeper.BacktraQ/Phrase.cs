@@ -149,24 +149,4 @@ namespace Keeper.BacktraQ
             });
         }
     }
-
-    public class Phrase<T>
-    {
-        private readonly Func<Var<VarList<char>>, Var<VarList<char>>, Query> function;
-
-        private readonly Var<T> variable;
-
-        public Phrase(Func<Var<VarList<char>>, Var<VarList<char>>, Query> function, Var<T> variable)
-        {
-            this.function = function;
-            this.variable = variable;
-        }
-
-        public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail, Var<T> state)
-        {
-            tail = tail ?? VarList.Create("");
-
-            return function(text, tail);
-        }
-    }
 }

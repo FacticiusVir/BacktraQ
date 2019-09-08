@@ -5,115 +5,58 @@ using System.Linq;
 
 namespace Keeper.BacktraQ
 {
-    public abstract class Query
+    public class Query
         : IEnumerable
     {
-        protected internal abstract QueryResult Run();
+        private readonly Func<QueryResult> run;
 
-        IEnumerator IEnumerable.GetEnumerator()
+        internal Query(Func<QueryResult> run) => this.run = run;
+
+        internal QueryResult Run() => this.run();
+
+        IEnumerator IEnumerable.GetEnumerator() => this.AsEnumerable().GetEnumerator();
+
+        public static Query Do(Action action) => new Query(() =>
         {
-            return this.AsEnumerable().GetEnumerator();
-        }
+            action();
 
-        public static Query Create(Action action, Action rollback = null)
-        {
-            return new ActionQuery(action, rollback);
-        }
+            return QueryResult.Success;
+        });
 
-        public static Var<T> NewVar<T>(out Var<T> variable)
-        {
-            return variable = new Var<T>();
-        }
+        public static Query Do(Action action, Action rollback) => Do(action) | (Do(rollback) & Fail);
 
-        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list)
-        {
-            return list = new Var<VarList<T>>();
-        }
+        public static Var<T> NewVar<T>(out Var<T> variable) => variable = new Var<T>();
 
-        public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results)
-        {
-            return Query.Create(() =>
-            {
-                return results.Unify(this.AsVarList(variable));
-            });
-        }
+        public static Query NewVar<T>(Func<Var<T>, Query> query, out Var<T> variable) => query(NewVar(out variable));
 
-        public static Query Create(Func<bool> predicate)
-        {
-            return new TestQuery(predicate);
-        }
+        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list) => list = new Var<VarList<T>>();
 
-        public static Query IfThen(Query condition, Query action)
-        {
-            return IfThen(condition, action, Query.Success);
-        }
+        public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results) => Wrap(() => results.Unify(this.AsVarList(variable)));
 
-        public static Query IfThen(Query condition, Query action, Query elseAction)
-        {
-            return Query.Create(() =>
-            {
-                if (condition.Succeeds(true))
-                {
-                    return action;
-                }
-                else
-                {
-                    return elseAction;
-                }
-            });
-        }
+        public static Query When(Func<bool> predicate) => new Query(() => predicate() ? QueryResult.Success : QueryResult.Fail);
 
-        public static Query All(params Query[] goals)
-        {
-            return All((IEnumerable<Query>)goals);
-        }
+        public static Query IfThen(Query condition, Query action) => IfThen(condition, action, Success);
 
-        public static Query All(IEnumerable<Query> goals)
-        {
-            var result = goals.First();
+        public static Query IfThen(Query condition, Query action, Query elseAction) => Wrap(() => condition.Succeeds(true) ? action : elseAction);
 
-            foreach (var goal in goals.Skip(1))
-            {
-                result = result.And(goal);
-            }
+        public static Query All(params Query[] goals) => All((IEnumerable<Query>)goals);
 
-            return result;
-        }
+        public static Query All(IEnumerable<Query> goals) => goals.Aggregate((x, y) => x.And(y));
 
+        public static Query Any(params Query[] options) => Any((IEnumerable<Query>)options);
 
-        public static Query Any(params Query[] options)
-        {
-            return Any((IEnumerable<Query>)options);
-        }
-
-        public static Query Any(IEnumerable<Query> options)
-        {
-            var result = options.First();
-
-            foreach (var alternative in options.Skip(1))
-            {
-                result = result.Or(alternative);
-            }
-
-            return result;
-        }
+        public static Query Any(IEnumerable<Query> options) => options.Aggregate((x, y) => x.Or(y));
 
         public static Query Chain<T>(Func<Var<VarList<T>>, Var<T>, Query> subQuery, int repetitions, Var<VarList<T>> input, Var<VarList<T>> output = null)
         {
-            return Chain((oldList, newList) =>
-            {
-                var newItem = new Var<T>();
-
-                return subQuery(oldList, newItem)
-                            & oldList.Append(newItem, newList);
-            }, repetitions, input, output);
+            return Chain((oldList, newList) => subQuery(oldList, NewVar<T>(out var newItem)) & newList <= oldList.Append(newItem), repetitions, input, output);
         }
 
         public static Query Chain<T>(Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)
         {
             if (repetitions == 0)
             {
-                return Query.Success;
+                return Success;
             }
 
             output = output ?? new Var<T>();
@@ -127,7 +70,7 @@ namespace Keeper.BacktraQ
                 input = intermediary;
                 intermediary = new Var<T>();
 
-                queryAccumulator = queryAccumulator & subQuery(input, intermediary);
+                queryAccumulator &= subQuery(input, intermediary);
             }
 
             return intermediary <= output & queryAccumulator;
@@ -135,7 +78,7 @@ namespace Keeper.BacktraQ
 
         public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map, Func<V, T> unmap = null)
         {
-            return Query.Create(() =>
+            return Wrap(() =>
             {
                 if (left.HasValue)
                 {
@@ -154,7 +97,7 @@ namespace Keeper.BacktraQ
 
         public static Query Map<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> map, Func<V, W, T> unmapLeft, Func<T, W, V> unmapRight)
         {
-            return Query.Create(() =>
+            return Wrap(() =>
             {
                 if (left.HasValue & right.HasValue)
                 {
@@ -179,19 +122,16 @@ namespace Keeper.BacktraQ
 
         public static Query Map<T, V, W>(Var<T> t, Var<V> v, Var<W> w, params (T, V, W)[] mappings)
         {
-            return Query.Any(mappings.Select(mapping =>
-            {
-                return t <= mapping.Item1
-                        & v <= mapping.Item2
-                        & w <= mapping.Item3;
-            }));
+            return Any(mappings.Select(mapping => t <= mapping.Item1
+                                                    & v <= mapping.Item2
+                                                    & w <= mapping.Item3));
         }
 
         public static Query Construct<T, V, W>(out Var<T> left, out Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, (T, V)> deconstruct = null) => Construct(NewVar(out left), NewVar(out right), result, construct, deconstruct);
 
         public static Query Construct<T, V, W>(Var<T> left, Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, (T, V)> deconstruct = null)
         {
-            return Query.Create(() =>
+            return Wrap(() =>
             {
                 if (left.HasValue & right.HasValue)
                 {
@@ -211,52 +151,34 @@ namespace Keeper.BacktraQ
             });
         }
 
-        public static Query Create(Func<Query> query)
-        {
-            return new PassthroughQuery(query);
-        }
+        public static Query Wrap(Func<Query> query) => new Query(() => query().Run());
 
         public static Query Success
         {
-            get
-            {
-                return new TestQuery(() => true);
-            }
-        }
+            get;
+        } = new Query(() => QueryResult.Success);
 
         public static Query Fail
         {
-            get
-            {
-                return new TestQuery(() => false);
-            }
-        }
+            get;
+        } = new Query(() => QueryResult.Fail);
 
-        public static Query Random(out Var<int> bound, Var<int> value) =>  Random(NewVar(out bound), value);
+    private static readonly Random rnd = new Random();
 
-        public static Query Random(Var<int> bound, out Var<int> value) =>  Random(bound, NewVar(out value));
-        
-        public static Query Random(out Var<int> bound, out Var<int> value) => Random(NewVar(out bound), NewVar(out value));
+        public static Query Random(Var<int> bound, out Var<int> value) => Random(bound, NewVar(out value));
 
         public static Query Random(Var<int> bound, Var<int> value)
-            => Create(() => bound.HasValue)
-                .And(() =>
+            => When(() => bound.HasValue)
+                & (() =>
                     {
                         var sequence = Enumerable.Range(0, bound.Value).ToList();
 
                         Shuffle(sequence);
 
-                        return EnumerableQuery.Create(sequence, value);
+                        return value <= VarList<int>.Create(sequence).Member;
                     });
 
-        public static Query Not(Query query)
-        {
-            return new TestQuery(() => !query.Succeeds(true));
-        }
-
-        private static Random rnd = new Random();
-
-        public static void Shuffle<T>(IList<T> list)
+        private static void Shuffle<T>(IList<T> list)
         {
             int n = list.Count;
             while (n > 1)
@@ -269,30 +191,19 @@ namespace Keeper.BacktraQ
             }
         }
 
-        public static Query operator &(Query left, Query right)
-        {
-            return left.And(right);
-        }
+        public static Query Not(Query query) => When(() => !query.Succeeds(true));
 
-        public static Query operator &(Query left, Func<Query> right)
-        {
-            return left.And(right);
-        }
+        public static Query operator &(Query left, Query right) => left.And(right);
 
-        public static Query operator |(Query left, Query right)
-        {
-            return left.Or(right);
-        }
+        public static Query operator &(Query left, Func<Query> right) => left.And(right);
 
-        public static Query operator |(Query left, Func<Query> right)
-        {
-            return left.Or(right);
-        }
+        public static Query operator |(Query left, Query right) => left.Or(right);
 
-        public static Query operator !(Query query)
-        {
-            return Not(query);
-        }
+        public static Query operator |(Query left, Func<Query> right) => left.Or(right);
+
+        public static Query operator !(Query query) => Not(query);
+
+        public static implicit operator Query(Func<Query> func) => Wrap(func);
     }
 
     public static class QueryExtensions

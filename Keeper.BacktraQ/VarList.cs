@@ -78,6 +78,22 @@ namespace Keeper.BacktraQ
             return Create((IEnumerable<Var<T>>)items);
         }
 
+        public static Var<VarList<T>> Create(IEnumerable<T> items, bool knownLength = true)
+        {
+            if (items.Any())
+            {
+                var tail = Create(items.Skip(1), knownLength);
+
+                return new VarList<T>(items.First(), tail);
+            }
+            else
+            {
+                return knownLength
+                        ? EmptyList
+                        : new Var<VarList<T>>();
+            }
+        }
+
         public static Var<VarList<T>> Create(IEnumerable<Var<T>> items, bool knownLength = true)
         {
             if (items.Any())
@@ -183,14 +199,16 @@ namespace Keeper.BacktraQ
 
         public static Query NonVarMember<T>(this Var<VarList<T>> list, Var<T> element)
         {
-            return Query.Create(() =>
+            return Wrap(() =>
             {
                 var tail = VarList.Create<T>();
 
-                return Query.Any(list.UnifyHead(element) & element.IsNonVar(),
+                return Any(list.UnifyHead(element) & element.IsNonVar(),
                                     list.UnifyTail(tail) & tail.IsNonVar());
             });
         }
+
+        public static Func<Var<VarList<T>>, Query> Append<T>(this Var<VarList<T>> initial, Var<T> item) => result => initial.Append(item, result);
 
         public static Query Append<T>(this Var<VarList<T>> initial, Var<T> item, Var<VarList<T>> result)
         {
@@ -283,7 +301,7 @@ namespace Keeper.BacktraQ
 
         public static Query AsString(this Var<VarList<char>> charList, Var<string> value)
         {
-            return Query.Create(() =>
+            return Query.Wrap(() =>
             {
                 if (value.HasValue)
                 {

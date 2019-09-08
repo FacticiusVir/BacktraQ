@@ -16,7 +16,7 @@
 
         public static Query LessThan(this Var<int> left, Var<int> right)
         {
-            return Query.Create(() =>
+            return Query.When(() =>
             {
                 return left.Value < right.Value;
             });
@@ -24,7 +24,7 @@
 
         public static Query LessThanOrEqual(this Var<int> left, Var<int> right)
         {
-            return Query.Create(() =>
+            return Query.When(() =>
             {
                 return left.Value <= right.Value;
             });
@@ -32,7 +32,7 @@
 
         public static Query GreaterThan(this Var<int> left, Var<int> right)
         {
-            return Query.Create(() =>
+            return Query.When(() =>
             {
                 return left.Value > right.Value;
             });
@@ -40,7 +40,7 @@
 
         public static Query GreaterThanOrEqual(this Var<int> left, Var<int> right)
         {
-            return Query.Create(() =>
+            return Query.When(() =>
             {
                 return left.Value >= right.Value;
             });

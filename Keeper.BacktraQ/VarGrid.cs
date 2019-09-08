@@ -50,7 +50,7 @@ namespace Keeper.BacktraQ
 
         public Query ToArray(Var<T[,]> array, T defaultValue = default(T))
         {
-            return Create(() =>
+            return Wrap(() =>
             {
                 var x = new Var<int>();
                 var y = new Var<int>();

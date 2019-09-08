@@ -189,28 +189,28 @@ namespace Keeper.BacktraQ
         {
             return variable == null
                 ? Query.Success
-                : Query.Create(() => variable.TryUnify(value));
+                : Query.When(() => variable.TryUnify(value));
         }
 
         public static Query Unify<T>(this Var<T> variable, Var<T> other)
         {
             return variable == null
                 ? Query.Success
-                : Query.Create(() => variable.TryUnify(other));
+                : Query.When(() => variable.TryUnify(other));
         }
 
         public static Query IsVar<T>(this Var<T> variable)
         {
             return variable == null
                 ? Query.Success
-                : Query.Create(() => !variable.HasValue);
+                : Query.When(() => !variable.HasValue);
         }
 
         public static Query IsNonVar<T>(this Var<T> variable)
         {
             return variable == null
                 ? Query.Fail
-                : Query.Create(() => variable.HasValue);
+                : Query.When(() => variable.HasValue);
         }
     }
 
