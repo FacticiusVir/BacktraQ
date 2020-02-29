@@ -16,11 +16,10 @@ namespace Keeper.BacktraQ
             GetListMembers();
             ShuffleList();
             Negation();
+            Arithmetic();
             SimpleDcg();
             DcgState();
             QueryTimeCodeExecution();
-
-            Console.ReadLine();
         }
 
         private static void SimpleUnifyVariable()
@@ -167,6 +166,49 @@ namespace Keeper.BacktraQ
             foreach (var result in query)
             {
                 Console.WriteLine($"member = {member}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+        }
+
+        private static void Arithmetic()
+        {
+            DisplayHeader("Arithmetic");
+
+            var x = new Var<int>();
+            var y = new Var<int>();
+            var z = new Var<int>();
+
+            var firstQuery = x.Between(1, 4)
+                                & y.Between(5, 8)
+                                & z <= x.Add(y);
+
+            var secondQuery = x.Between(1, 4)
+                                & z.Between(5, 8)
+                                & z <= x.Add(y);
+
+            // Run query and display all results
+            int count = 0;
+
+            Console.WriteLine($"x + y = z?");
+
+            foreach (var result in firstQuery)
+            {
+                Console.WriteLine($"{x} + {y} = {z}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+
+            count = 0;
+
+            Console.WriteLine();
+            Console.WriteLine($"x + y? = z");
+
+            foreach (var result in secondQuery)
+            {
+                Console.WriteLine($"{x} + {y} = {z}");
                 count++;
             }
 

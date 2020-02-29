@@ -1,4 +1,6 @@
-﻿namespace Keeper.BacktraQ
+﻿using System;
+
+namespace Keeper.BacktraQ
 {
     public static class QMath
     {
@@ -7,12 +9,11 @@
             return Query.Map(initial, result, x => x + 1, x => x - 1);
         }
 
+        public static Func<Var<int>, Query> Add(this Var<int> left, Var<int> right) => result => Add(left, right, result);
+
         public static Query Add(Var<int> left, Var<int> right, out Var<int> result) => Add(left, right, Query.NewVar(out result));
 
-        public static Query Add(Var<int> left, Var<int> right, Var<int> result)
-        {
-            return Query.Map(left, right, result, (x, y) => x + y, (x, y) => y - x, (x, y) => y - x);
-        }
+        public static Query Add(Var<int> left, Var<int> right, Var<int> result) => Query.Map(left, right, result, (x, y) => x + y, (x, y) => y - x, (x, y) => y - x);
 
         public static Query LessThan(this Var<int> left, Var<int> right)
         {

@@ -58,7 +58,7 @@ namespace Keeper.BacktraQ
             });
         }
 
-        internal void Log<T>(Var<T> variable)
+        internal void Log(Var variable)
         {
             if (this.frames.Any())
             {
@@ -100,13 +100,7 @@ namespace Keeper.BacktraQ
             }
         }
 
-        internal int Depth
-        {
-            get
-            {
-                return this.frames.Count;
-            }
-        }
+        internal int Depth => this.frames.Count;
 
         private struct ChoiceFrame
         {

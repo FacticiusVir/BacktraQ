@@ -14,6 +14,10 @@ namespace Keeper.BacktraQ
 
         internal QueryResult Run() => this.run();
 
+        public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results) => Wrap(() => results.Unify(this.AsVarList(variable)));
+
+        public Func<Var<VarList<T>>, Query> FindAll<T>(Var<T> variable) => results => Wrap(() => results.Unify(this.AsVarList(variable)));
+
         IEnumerator IEnumerable.GetEnumerator() => this.AsEnumerable().GetEnumerator();
 
         public static Query Do(Action action) => new Query(() =>
@@ -25,56 +29,13 @@ namespace Keeper.BacktraQ
 
         public static Query Do(Action action, Action rollback) => Do(action) | (Do(rollback) & Fail);
 
-        public static Var<T> NewVar<T>(out Var<T> variable) => variable = new Var<T>();
-
-        public static Query NewVar<T>(Func<Var<T>, Query> query, out Var<T> variable) => query(NewVar(out variable));
-
-        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list) => list = new Var<VarList<T>>();
-
-        public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results) => Wrap(() => results.Unify(this.AsVarList(variable)));
-
         public static Query When(Func<bool> predicate) => new Query(() => predicate() ? QueryResult.Success : QueryResult.Fail);
+
+        public static Query Wrap(Func<Query> query) => new Query(() => query().Run());
 
         public static Query IfThen(Query condition, Query action) => IfThen(condition, action, Success);
 
-        public static Query IfThen(Query condition, Query action, Query elseAction) => Wrap(() => condition.Succeeds(true) ? action : elseAction);
-
-        public static Query All(params Query[] goals) => All((IEnumerable<Query>)goals);
-
-        public static Query All(IEnumerable<Query> goals) => goals.Aggregate((x, y) => x.And(y));
-
-        public static Query Any(params Query[] options) => Any((IEnumerable<Query>)options);
-
-        public static Query Any(IEnumerable<Query> options) => options.Aggregate((x, y) => x.Or(y));
-
-        public static Query Chain<T>(Func<Var<VarList<T>>, Var<T>, Query> subQuery, int repetitions, Var<VarList<T>> input, Var<VarList<T>> output = null)
-        {
-            return Chain((oldList, newList) => subQuery(oldList, NewVar<T>(out var newItem)) & newList <= oldList.Append(newItem), repetitions, input, output);
-        }
-
-        public static Query Chain<T>(Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)
-        {
-            if (repetitions == 0)
-            {
-                return Success;
-            }
-
-            output = output ?? new Var<T>();
-
-            var intermediary = new Var<T>();
-
-            var queryAccumulator = subQuery(input, intermediary);
-
-            for (int index = 1; index < repetitions; index++)
-            {
-                input = intermediary;
-                intermediary = new Var<T>();
-
-                queryAccumulator &= subQuery(input, intermediary);
-            }
-
-            return intermediary <= output & queryAccumulator;
-        }
+        public static Query IfThen(Query condition, Query action, Query elseAction) => Wrap(() => condition.Succeeds() ? action : elseAction);
 
         public static Query Map<T, V>(Var<T> left, Var<V> right, Func<T, V> map, Func<V, T> unmap = null)
         {
@@ -122,9 +83,9 @@ namespace Keeper.BacktraQ
 
         public static Query Map<T, V, W>(Var<T> t, Var<V> v, Var<W> w, params (T, V, W)[] mappings)
         {
-            return Any(mappings.Select(mapping => t <= mapping.Item1
-                                                    & v <= mapping.Item2
-                                                    & w <= mapping.Item3));
+            return mappings.Select(mapping => t <= mapping.Item1
+                                                & v <= mapping.Item2
+                                                & w <= mapping.Item3).Any();
         }
 
         public static Query Construct<T, V, W>(out Var<T> left, out Var<V> right, Var<W> result, Func<T, V, W> construct, Func<W, (T, V)> deconstruct = null) => Construct(NewVar(out left), NewVar(out right), result, construct, deconstruct);
@@ -151,7 +112,22 @@ namespace Keeper.BacktraQ
             });
         }
 
-        public static Query Wrap(Func<Query> query) => new Query(() => query().Run());
+        public static Var<T> NewVar<T>(out Var<T> variable) => variable = new Var<T>();
+        
+        public static Var<(Var<T>, Var<U>)> NewVar<T, U>(out Var<(Var<T>, Var<U>)> variable) => variable = new Var<(Var<T>, Var<U>)>();
+
+        public static Func<Query> NewVar<T>(Func<Var<T>, Query> query, out Var<T> variable)
+        {
+            variable = new Var<T>();
+
+            var liftedVariable = variable;
+
+            return () => query(liftedVariable);
+        }
+
+        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list) => list = new Var<VarList<T>>();
+
+        public static Var<VarList<(Var<T>, Var<U>)>> NewList<T, U>(out Var<VarList<(Var<T>, Var<U>)>> list) => list = new Var<VarList<(Var<T>, Var<U>)>>();
 
         public static Query Success
         {
@@ -163,7 +139,7 @@ namespace Keeper.BacktraQ
             get;
         } = new Query(() => QueryResult.Fail);
 
-    private static readonly Random rnd = new Random();
+        private static readonly Random rnd = new Random();
 
         public static Query Random(Var<int> bound, out Var<int> value) => Random(bound, NewVar(out value));
 
@@ -190,6 +166,9 @@ namespace Keeper.BacktraQ
                 list[n] = value;
             }
         }
+        public static Query All(params Query[] goals) => goals.All();
+
+        public static Query Any(params Query[] options) => options.Any();
 
         public static Query Not(Query query) => When(() => !query.Succeeds(true));
 
@@ -203,11 +182,50 @@ namespace Keeper.BacktraQ
 
         public static Query operator !(Query query) => Not(query);
 
+        public static Query operator %(Query condition, Query action) => IfThen(condition, action);
+
         public static implicit operator Query(Func<Query> func) => Wrap(func);
     }
 
     public static class QueryExtensions
     {
+        public static Query All(this IEnumerable<Query> goals) => goals.Aggregate((x, y) => x.And(y));
+
+        public static Query Any(this IEnumerable<Query> options) => options.Aggregate((x, y) => x.Or(y));
+
+        public static Func<T, Query> Any<T>(this IEnumerable<Func<T, Query>> options) => a => options.Select(option => option(a)).Aggregate((x, y) => x.Or(y));
+
+        public static Func<T, V, Query> Any<T, V>(this IEnumerable<Func<T, V, Query>> options) => (a, b) => options.Select(option => option(a, b)).Aggregate((x, y) => x.Or(y));
+
+        public static Query Chain<T>(this Func<Var<VarList<T>>, Var<T>, Query> subQuery, int repetitions, Var<VarList<T>> input, Var<VarList<T>> output = null)
+        {
+            return Chain((oldList, newList) => subQuery(oldList, Query.NewVar<T>(out var newItem)) & newList <= oldList.Append(newItem), repetitions, input, output);
+        }
+
+        public static Query Chain<T>(this Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)
+        {
+            if (repetitions == 0)
+            {
+                return Query.Success;
+            }
+
+            output ??= new Var<T>();
+
+            var intermediary = new Var<T>();
+
+            var queryAccumulator = subQuery(input, intermediary);
+
+            for (int index = 1; index < repetitions; index++)
+            {
+                input = intermediary;
+                intermediary = new Var<T>();
+
+                queryAccumulator &= subQuery(input, intermediary);
+            }
+
+            return intermediary <= output & queryAccumulator;
+        }
+
         public static bool Succeeds(this Query query, bool revertAll = false)
         {
             foreach (var result in query.AsEnumerable(revertAll))
@@ -255,7 +273,7 @@ namespace Keeper.BacktraQ
             {
                 Trail.Enter();
 
-                Query nextQuery = query;
+                var nextQuery = query;
 
                 while (nextQuery != null)
                 {

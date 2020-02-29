@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Keeper.BacktraQ
 {
@@ -7,6 +8,8 @@ namespace Keeper.BacktraQ
         protected static int count = 0;
 
         internal abstract void Reset();
+
+        internal abstract bool TryUnify(Var other);
 
         public static void Optional<T>(ref Var<T> variable)
         {
@@ -32,20 +35,9 @@ namespace Keeper.BacktraQ
             private set;
         }
 
-        public bool HasValue
-        {
-            get
-            {
-                if (this.State == VarState.Reference)
-                {
-                    return this.reference.HasValue;
-                }
-                else
-                {
-                    return this.State == VarState.Value;
-                }
-            }
-        }
+        public bool HasValue =>
+            (this.State == VarState.Reference && this.reference.HasValue)
+            || this.State == VarState.Value;
 
         public T Value
         {
@@ -63,9 +55,9 @@ namespace Keeper.BacktraQ
             }
         }
 
-        public T GetValueOrDefault(T defaultValue = default(T))
+        public T GetValueOrDefault(T defaultValue = default)
         {
-            if(this.HasValue)
+            if (this.HasValue)
             {
                 return this.Value;
             }
@@ -75,18 +67,12 @@ namespace Keeper.BacktraQ
             }
         }
 
-        public bool IsBound
-        {
-            get
-            {
-                return this.State != VarState.Empty;
-            }
-        }
+        public bool IsBound => this.State != VarState.Empty;
 
         internal override void Reset()
         {
             this.State = VarState.Empty;
-            this.value = default(T);
+            this.value = default;
             this.reference = null;
         }
 
@@ -111,6 +97,8 @@ namespace Keeper.BacktraQ
             };
         }
 
+        internal override bool TryUnify(Var other) => this.TryUnify((Var<T>)other);
+
         public bool TryUnify(Var<T> other)
         {
             var derefThis = this.Dereference();
@@ -130,6 +118,34 @@ namespace Keeper.BacktraQ
                     if (derefThis.value is IUnifiable<T> unifiable)
                     {
                         return unifiable.TryUnify(derefOther.Value);
+                    }
+                    else if (derefThis.value is ITuple tuple)
+                    {
+                        var otherTuple = (ITuple)derefOther.value;
+
+                        bool allUnify = true;
+
+                        for (int fieldIndex = 0; fieldIndex < tuple.Length; fieldIndex++)
+                        {
+                            var thisFieldValue = tuple[fieldIndex];
+                            var otherFieldValue = otherTuple[fieldIndex];
+
+                            if (thisFieldValue is Var fieldVar)
+                            {
+                                allUnify &= fieldVar.TryUnify((Var)otherFieldValue);
+                            }
+                            else
+                            {
+                                allUnify &= thisFieldValue.Equals(otherFieldValue);
+                            }
+
+                            if (!allUnify)
+                            {
+                                break;
+                            }
+                        }
+
+                        return allUnify;
                     }
                     else
                     {
@@ -185,6 +201,9 @@ namespace Keeper.BacktraQ
 
     public static class VarExtensions
     {
+        public static Query Deconstruct<T, U>(this Var<(Var<T>, Var<U>)> variable, out Var<T> first, out Var<U> second)
+            => variable <= (Query.NewVar(out first), Query.NewVar(out second));
+
         public static Query Unify<T>(this Var<T> variable, T value)
         {
             return variable == null

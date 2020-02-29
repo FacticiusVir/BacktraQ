@@ -25,7 +25,7 @@ namespace Keeper.BacktraQ
 
         public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail)
         {
-            tail = tail ?? VarList.Create("");
+            tail ??= VarList.Create("");
 
             return function(text, tail);
         }
@@ -54,8 +54,8 @@ namespace Keeper.BacktraQ
         {
             return new Phrase((text, tail) =>
             {
-                text = text ?? new Var<VarList<char>>();
-                tail = tail ?? new Var<VarList<char>>();
+                text ??= new Var<VarList<char>>();
+                tail ??= new Var<VarList<char>>();
 
                 return token.Append(tail, text);
             });
@@ -73,12 +73,7 @@ namespace Keeper.BacktraQ
 
         public static Phrase OptionPhrase(params Phrase[] elements)
         {
-            return new Phrase((text, tail) =>
-            {
-                var elementQueries = elements.Select(element => element.BuildQuery(text, tail));
-
-                return Query.Any(elementQueries);
-            });
+            return new Phrase((text, tail) => elements.Select(element => element.BuildQuery(text, tail)).Any());
         }
 
         public static Phrase RandomPhrase(params Phrase[] elements)
@@ -119,7 +114,7 @@ namespace Keeper.BacktraQ
                     }
                     else
                     {
-                        result = result & elements[elementIndex].BuildQuery(previousTail, nextTail);
+                        result &= elements[elementIndex].BuildQuery(previousTail, nextTail);
                     }
 
                     previousTail = nextTail;
