@@ -5,32 +5,32 @@ namespace Keeper.BacktraQ
 {
     public class Phrase
     {
-        private readonly Func<Var<VarList<char>>, Var<VarList<char>>, Query> function;
+        private readonly Func<VarList<char>, VarList<char>, Query> function;
 
-        public Phrase(Func<Var<VarList<char>>, Var<VarList<char>>, Query> function)
+        public Phrase(Func<VarList<char>, VarList<char>, Query> function)
         {
             this.function = function;
         }
 
         public Query AsString(Var<string> text)
         {
-            var textChars = new Var<VarList<char>>();
+            var textChars = new VarList<char>();
 
             return Query.IfThen(text.IsNonVar(), text <= textChars.AsString)
                             & this.BuildQuery(textChars)
                             & text <= textChars.AsString;
         }
 
-        public Query BuildQuery(Var<VarList<char>> text) => BuildQuery(text, null);
+        public Query BuildQuery(VarList<char> text) => BuildQuery(text, null);
 
-        public Query BuildQuery(Var<VarList<char>> text, Var<VarList<char>> tail)
+        public Query BuildQuery(VarList<char> text, VarList<char> tail)
         {
             tail ??= VarList.Create("");
 
             return function(text, tail);
         }
 
-        public static implicit operator Phrase(Func<Var<VarList<char>>, Var<VarList<char>>, Query> function)
+        public static implicit operator Phrase(Func<VarList<char>, VarList<char>, Query> function)
         {
             return new Phrase(function);
         }
@@ -40,7 +40,7 @@ namespace Keeper.BacktraQ
             return Token(VarList.Create(token));
         }
 
-        public static implicit operator Phrase(Var<VarList<char>> token)
+        public static implicit operator Phrase(VarList<char> token)
         {
             return Token(token);
         }
@@ -50,12 +50,12 @@ namespace Keeper.BacktraQ
             return new Phrase((x, y) => x <= y & query);
         }
 
-        public static Phrase Token(Var<VarList<char>> token)
+        public static Phrase Token(VarList<char> token)
         {
             return new Phrase((text, tail) =>
             {
-                text ??= new Var<VarList<char>>();
-                tail ??= new Var<VarList<char>>();
+                text ??= new VarList<char>();
+                tail ??= new VarList<char>();
 
                 return token.Append(tail, text);
             });
@@ -94,7 +94,7 @@ namespace Keeper.BacktraQ
             return new Phrase((text, tail) =>
             {
                 var previousTail = text;
-                Var<VarList<char>> nextTail = null;
+                VarList<char> nextTail = null;
                 Query result = null;
 
                 for (int elementIndex = 0; elementIndex < elements.Length; elementIndex++)
@@ -105,7 +105,7 @@ namespace Keeper.BacktraQ
                     }
                     else
                     {
-                        nextTail = new Var<VarList<char>>();
+                        nextTail = new VarList<char>();
                     }
 
                     if (result == null)
@@ -128,7 +128,7 @@ namespace Keeper.BacktraQ
         {
             return new Phrase((text, tail) =>
             {
-                var mid = new Var<VarList<char>>();
+                var mid = new VarList<char>();
 
                 return left.BuildQuery(text, mid)
                         & right.BuildQuery(mid, tail);

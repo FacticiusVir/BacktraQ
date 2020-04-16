@@ -13,7 +13,7 @@ namespace Keeper.BacktraQ
 
         public static void Optional<T>(ref Var<T> variable)
         {
-            variable = variable ?? new Var<T>();
+            variable ??= new Var<T>();
         }
     }
 
@@ -26,7 +26,18 @@ namespace Keeper.BacktraQ
 
         public Var()
         {
-            this.State = VarState.Empty;
+            this.State = VarState.Undefined;
+        }
+
+        protected Var(bool isEmpty)
+        {
+            this.State = isEmpty ? VarState.Empty : VarState.Undefined;
+        }
+
+        protected Var(T value)
+        {
+            this.value = value;
+            this.State = VarState.Value;
         }
 
         public VarState State
@@ -34,6 +45,8 @@ namespace Keeper.BacktraQ
             get;
             private set;
         }
+
+        public static Var<T> Empty => new Var<T> { State = VarState.Empty };
 
         public bool HasValue =>
             (this.State == VarState.Reference && this.reference.HasValue)
@@ -55,47 +68,20 @@ namespace Keeper.BacktraQ
             }
         }
 
-        public T GetValueOrDefault(T defaultValue = default)
-        {
-            if (this.HasValue)
-            {
-                return this.Value;
-            }
-            else
-            {
-                return defaultValue;
-            }
-        }
+        public T GetValueOrDefault(T defaultValue = default) => this.HasValue ? this.Value : defaultValue;
 
-        public bool IsBound => this.State != VarState.Empty;
+        public bool IsBound => this.State != VarState.Undefined;
 
         internal override void Reset()
         {
-            this.State = VarState.Empty;
+            this.State = VarState.Undefined;
             this.value = default;
             this.reference = null;
         }
 
-        internal Var<T> Dereference()
-        {
-            if (this.State == VarState.Reference)
-            {
-                return this.reference.Dereference();
-            }
-            else
-            {
-                return this;
-            }
-        }
+        internal Var<T> Dereference() => this.State == VarState.Reference ? this.reference.Dereference() : this;
 
-        public static implicit operator Var<T>(T value)
-        {
-            return new Var<T>
-            {
-                value = value,
-                State = VarState.Value
-            };
-        }
+        public static implicit operator Var<T>(T value) => new Var<T>(value);
 
         internal override bool TryUnify(Var other) => this.TryUnify((Var<T>)other);
 
@@ -104,7 +90,34 @@ namespace Keeper.BacktraQ
             var derefThis = this.Dereference();
             var derefOther = other.Dereference();
 
-            if (derefThis == derefOther)
+            if (object.ReferenceEquals(derefThis, derefOther))
+            {
+                return true;
+            }
+
+            bool thisIsEmpty = derefThis.State == VarState.Empty;
+            bool otherIsEmpty = derefOther.State == VarState.Empty;
+
+            if (thisIsEmpty ^ otherIsEmpty)
+            {
+                if (derefThis.State == VarState.Undefined)
+                {
+                    derefThis.State = VarState.Empty;
+
+                    return true;
+                }
+                else if (derefOther.State == VarState.Undefined)
+                {
+                    derefOther.State = VarState.Empty;
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else if (thisIsEmpty && otherIsEmpty)
             {
                 return true;
             }
@@ -235,6 +248,7 @@ namespace Keeper.BacktraQ
 
     public enum VarState
     {
+        Undefined,
         Empty,
         Reference,
         Value

@@ -41,7 +41,7 @@ namespace DungeonGen
             return QueryExtensions.Chain((oldList, newCoord) => PlaceConnectedCell(grid, newCoord, oldList), roomCount - 1, VarList.Create(initialcoord));
         }
 
-        private static readonly Var<VarList<Direction>> DirectionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
+        private static readonly VarList<Direction> DirectionList = VarList.Create(Direction.Up, Direction.Down, Direction.Left, Direction.Right);
 
         private static Query PlaceFirstCell(VarGrid<Direction> grid, out Var<(Var<int>, Var<int>)> coord)
         {
@@ -51,7 +51,7 @@ namespace DungeonGen
                     & GetCell(grid, coord, Direction.Entrance);
         }
 
-        private static Query PlaceConnectedCell(VarGrid<Direction> grid, Var<(Var<int>, Var<int>)> coord, Var<VarList<(Var<int>, Var<int>)>> placedList)
+        private static Query PlaceConnectedCell(VarGrid<Direction> grid, Var<(Var<int>, Var<int>)> coord, VarList<(Var<int>, Var<int>)> placedList)
         {
             return NewVar<int, int>(out var placedCoord) <= placedList.RandomMember
                         & NewVar<Direction>(out var direction) <= DirectionList.RandomMember

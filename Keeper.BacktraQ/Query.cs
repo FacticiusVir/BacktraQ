@@ -16,7 +16,7 @@ namespace Keeper.BacktraQ
 
         public Query FindAll<T>(Var<T> variable, Var<VarList<T>> results) => Wrap(() => results.Unify(this.AsVarList(variable)));
 
-        public Func<Var<VarList<T>>, Query> FindAll<T>(Var<T> variable) => results => Wrap(() => results.Unify(this.AsVarList(variable)));
+        public Func<VarList<T>, Query> FindAll<T>(Var<T> variable) => results => Wrap(() => results <= this.AsVarList(variable));
 
         IEnumerator IEnumerable.GetEnumerator() => this.AsEnumerable().GetEnumerator();
 
@@ -125,9 +125,9 @@ namespace Keeper.BacktraQ
             return () => query(liftedVariable);
         }
 
-        public static Var<VarList<T>> NewList<T>(out Var<VarList<T>> list) => list = new Var<VarList<T>>();
+        public static VarList<T> NewList<T>(out VarList<T> list) => list = new VarList<T>();
 
-        public static Var<VarList<(Var<T>, Var<U>)>> NewList<T, U>(out Var<VarList<(Var<T>, Var<U>)>> list) => list = new Var<VarList<(Var<T>, Var<U>)>>();
+        public static VarList<(Var<T>, Var<U>)> NewList<T, U>(out VarList<(Var<T>, Var<U>)> list) => list = new VarList<(Var<T>, Var<U>)>();
 
         public static Query Success
         {
@@ -151,7 +151,7 @@ namespace Keeper.BacktraQ
 
                         Shuffle(sequence);
 
-                        return value <= VarList<int>.Create(sequence).Member;
+                        return value <= VarList.Create<int>(sequence).Member;
                     });
 
         private static void Shuffle<T>(IList<T> list)
@@ -197,9 +197,22 @@ namespace Keeper.BacktraQ
 
         public static Func<T, V, Query> Any<T, V>(this IEnumerable<Func<T, V, Query>> options) => (a, b) => options.Select(option => option(a, b)).Aggregate((x, y) => x.Or(y));
 
-        public static Query Chain<T>(this Func<Var<VarList<T>>, Var<T>, Query> subQuery, int repetitions, Var<VarList<T>> input, Var<VarList<T>> output = null)
+        public static Query Chain<T>(this Func<VarList<T>, Var<T>, Query> subQuery, int repetitions, VarList<T> input, VarList<T> output = null)
         {
-            return Chain((oldList, newList) => subQuery(oldList, Query.NewVar<T>(out var newItem)) & newList <= oldList.Append(newItem), repetitions, input, output);
+            output ??= new VarList<T>();
+
+            var queryAccumulator = Query.Success;
+            VarList<T> intermediary = null;
+
+            for (int index = 0; index < repetitions; index++)
+            {
+                intermediary = new VarList<T>();
+                var element = new Var<T>();
+
+                queryAccumulator &= subQuery(input, element) & intermediary <= input.Append(element);
+            }
+
+            return intermediary <= output & queryAccumulator;
         }
 
         public static Query Chain<T>(this Func<Var<T>, Var<T>, Query> subQuery, int repetitions, Var<T> input, Var<T> output = null)

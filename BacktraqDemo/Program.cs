@@ -97,8 +97,9 @@ namespace Keeper.BacktraQ
         {
             DisplayHeader("Get List Members");
 
-            // Create unbound variable
+            // Create unbound variables
             var member = new Var<int>();
+            var length = new Var<int>();
 
             // Create pre-populated list
             var list = VarList.Create(1, 2, 3, 4);
@@ -113,6 +114,21 @@ namespace Keeper.BacktraQ
             foreach (var result in query)
             {
                 Console.WriteLine($"member = {member}");
+                count++;
+            }
+
+            Console.WriteLine($"Result count: {count}");
+
+            // Create query as "unify member with each member of the list"
+            var query2 = length <= list.Length;
+            // This is a shorthand for "var query = list.Member(member);"
+
+            // Run query and display all results
+            count = 0;
+
+            foreach (var result in query2)
+            {
+                Console.WriteLine($"length = {length}");
                 count++;
             }
 

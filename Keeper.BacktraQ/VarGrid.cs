@@ -6,7 +6,7 @@ namespace Keeper.BacktraQ
 {
     public class VarGrid<T>
     {
-        private readonly Var<VarList<VarList<T>>> grid;
+        private readonly VarList<VarList<T>> grid;
         private readonly int width;
         private readonly int height;
 
@@ -15,11 +15,11 @@ namespace Keeper.BacktraQ
             this.width = width;
             this.height = height;
 
-            var columnList = new List<Var<VarList<T>>>();
+            var columnList = new List<VarList<T>>();
 
             for (int x = 0; x < width; x++)
             {
-                columnList.Add(VarList<T>.Create(height));
+                columnList.Add(VarList.Create<T>(height));
             }
 
             this.grid = VarList.Create(columnList.ToArray());
@@ -27,22 +27,29 @@ namespace Keeper.BacktraQ
 
         public Query Member(Var<T> element)
         {
-            var column = new Var<VarList<T>>();
+            var columnVar = new Var<VarList<T>>();
+            var column = new VarList<T>();
 
-            return column <= grid.Member
+            return columnVar <= column
+                    & columnVar <= grid.Member
                     & element <= column.Member;
         }
         public Query RandomMember(Var<T> element)
         {
-            return grid.RandomMember(out var column)
+            var column = new VarList<T>();
+
+            return grid.RandomMember(out var columnVar)
+                    & columnVar <= column
                     & element <= column.RandomMember;
         }
 
         public Query XYth(Var<int> x, Var<int> y, Var<T> element)
         {
-            var column = new Var<VarList<T>>();
+            var columnVar = new Var<VarList<T>>();
+            var column = new VarList<T>();
 
-            return grid.Nth(x, column)
+            return grid.Nth(x, columnVar)
+                    & columnVar <= column
                     & column.Nth(y, element);
         }
 
