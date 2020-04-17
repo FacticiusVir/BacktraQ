@@ -127,6 +127,8 @@ namespace Keeper.BacktraQ
 
         public static Func<VarList<T>, Query> Append<T>(this VarList<T> initial, Var<T> item) => result => initial.Append(item, result);
 
+        public static Func<VarList<T>, Query> Append<T>(this VarList<T> initial, VarList<T> tail) => result => initial.Append(tail, result);
+
         public static Query Append<T>(this VarList<T> initial, Var<T> item, VarList<T> result)
         {
             return initial.Append(VarList.Create(item), result);

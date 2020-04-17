@@ -7,20 +7,15 @@ namespace Keeper.BacktraQ.Prolog
     {
         static void Main(string[] args)
         {
-            //var value = new VarList<char>();
-            //var value2 = new VarList<char>();
+            var value = new VarList<char>();
+            var value2 = new VarList<char>();
 
-            //var parser = (Phrase)"(" + value + ", " + value2 + ")";
+            var parser = (Phrase)"(" + value + ", " + value2 + ")";
 
-            //parser.AsString("(test, abc)").Succeeds();
+            parser.AsString("(test, abc)").Succeeds();
 
-            //Console.WriteLine(value.AsString());
-            //Console.WriteLine(value2.AsString());
-
-            var list = VarList<int>.Empty;
-            var length = new Var<int>();
-
-            //Console.WriteLine(query.Succeeds());
+            Console.WriteLine(value.AsString());
+            Console.WriteLine(value2.AsString());
         }
     }
 }

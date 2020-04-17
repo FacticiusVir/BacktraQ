@@ -8,5 +8,7 @@ namespace Keeper.BacktraQ
         public static Query PrintLine(string value) => Do(() => Console.WriteLine(value));
 
         public static Query PrintLine(object value) => Do(() => Console.WriteLine(value));
+
+        public static Query PrintLine<T>(Var<T> value) => Do(() => Console.WriteLine(value));
     }
 }

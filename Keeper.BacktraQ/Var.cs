@@ -56,15 +56,12 @@ namespace Keeper.BacktraQ
         {
             get
             {
-                switch (this.State)
+                return this.State switch
                 {
-                    case VarState.Value:
-                        return this.value;
-                    case VarState.Reference:
-                        return this.reference.Value;
-                    default:
-                        throw new InvalidOperationException();
-                }
+                    VarState.Value => this.value,
+                    VarState.Reference => this.reference.Value,
+                    _ => throw new InvalidOperationException(),
+                };
             }
         }
 
@@ -104,11 +101,15 @@ namespace Keeper.BacktraQ
                 {
                     derefThis.State = VarState.Empty;
 
+                    Trail.Current?.Log(derefThis);
+
                     return true;
                 }
                 else if (derefOther.State == VarState.Undefined)
                 {
                     derefOther.State = VarState.Empty;
+
+                    Trail.Current?.Log(derefOther);
 
                     return true;
                 }
@@ -184,6 +185,10 @@ namespace Keeper.BacktraQ
             if (this.HasValue)
             {
                 return this.Value.ToString();
+            }
+            else if (this.State == VarState.Empty)
+            {
+                return "[]";
             }
             else
             {
